@@ -17,7 +17,6 @@ is_day_or_night() {
     DAY_NIGHT='night'
   fi
 
-  echo "its ${DAY_NIGHT}time"
 
   save_configuration() {
     echo "save_configuration: is cache up-to-date?"

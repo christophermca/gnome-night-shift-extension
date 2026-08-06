@@ -14,7 +14,6 @@ auto_update_perf_mode() {
     exit 33
   fi
 
-echo "$DAY_NIGHT"
 if [ "$DAY_NIGHT" == "$DAY_MODE" ]; then
   PREFER_MODE='prefer-light';
 elif [ "$DAY_NIGHT" == "$NIGHT_MODE" ]; then

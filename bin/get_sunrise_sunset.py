@@ -43,7 +43,6 @@ def set_session_variables_night_shift(schema, key):
 
         state_file = Path.expanduser(Path(CACHE_FOLDER, "times"))
 
-        print(state_file)
         if state_file.exists():
             with state_file.open("w", encoding="utf-8") as file:
                 file.write(",".join(times))
