@@ -1,13 +1,12 @@
 [Unit]
 Description=timer night-shift
-Wants=network-online.target geoclue.service
-After=network-online.target
+Wants=network.target
 
 [Timer]
+OnStartupSec=0
 OnCalendar=*-*-* *:*:00
-OnActiveSec=0
 Persistent=true
-Unit=get-sunrise-sunset.service
+Unit=night-shift.service
 
 [Install]
 WantedBy=timers.target

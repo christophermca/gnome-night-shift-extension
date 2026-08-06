@@ -20,26 +20,15 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-// const STATE_FOLDER = "~/.local/state/gnome-night-shift/"
-// const SCHEMA = "org.gnome.settings-daemon.plugins.color"
-// const KEY = "night-light-last-coordinates"
-
-let configDir = GLib.get_user_config_dir(); // $HOME/.config
-let homeDir = GLib.get_home_dir(); // /$HOME
-let localDir = GLib.get_user_data_dir(); // $HOME/.local/share
+const configDir = GLib.get_user_config_dir(); // $HOME/.config
+const homeDir = GLib.get_home_dir(); // /$HOME
+const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
+const cacheDir = GLib.get_user_cache_dir(); // $HOME/.cache
 
 export default class PlainExampleExtension extends Extension {
-    constructor(metadata) {
-      super(metadata)
-
-      this.systemDir = GLib.build_filenamev([localDir, 'systemd', 'user'])
-    }
 
     enable() {
-      // enable get-sunrise-sunset.timer gnome-night-shift.timer
-      // auto-update-gnome-theme
-      log('[night-shift] hello world');
-      this._createAndStartServices().then(() => true)
+      this._createAndStartServices().catch((e) => console.log(`[night-shift] ${e}`))
     }
 
     disable() {
@@ -48,92 +37,48 @@ export default class PlainExampleExtension extends Extension {
     }
 
   _removeService() {
-    // this._runSystemdCommand(['systemctl', '--user', 'disable', '--now', 'get-sunrise-sunset.timer'])
-
-
+    // clean up files
   }
 
   async _createAndStartServices() {
-      let extensionDir = `${localDir}/gnome-shell/extensions/night-shift@christophermca.github.io`
+      const extensionDir = `${localDir}/gnome-shell/extensions/night-shift@christophermca.github.io`
+      const appCacheDir = `${cacheDir}/night-shift/`
 
-      let stateDir = GLib.build_filenamev([localDir, 'state', 'gnome-night-shift'])
 
-      // log('[night-shift] creating folders');
-      GLib.mkdir_with_parents(this.systemDir, 0o700);
-      GLib.mkdir_with_parents(stateDir, 0o700);
-      // log('[night-shift] DONE creating folders~~~~');
+      GLib.mkdir_with_parents(extensionDir, 0o700);
+      GLib.mkdir_with_parents(appCacheDir, 0o700);
 
      /**
       * TODO
-      *
-      * # 1
-      * - Create a get-sunrise-sunset timer
-      * - Create a get-sunrise-sunset service
-      * #2
-      * - Create gnome night-shift timer
-      * - Create gnome night-shift timer
       * #3
       * - Create auto-update-gnome-theme.path
       * - Create auto-update-gnome-theme.service
       **/
 
-
-
-      // let service = `[Unit]
-      // Description=Gets local sunrise and sunset times
-      // Wants=display-manager.service
-      // After=geoclue.service network-online.target graphical-session.target
-
-      // [Service]
-      // Type=oneshot
-      // StateDirectory=gnome-night-shift
-      // ExecStart=/usr/bin/echo "mark me"
-
-      // Restart=no`;
-
-      // let timer = `[Unit]
-      // Description=timer gnome-night-shift
-      // Wants=network-online.target geoclue.service
-      // After=network-online.target
-
-      // [Timer]
-      // OnCalendar=*-*-* *:*:00
-      // OnActiveSec=0
-      // Persistent=true
-      // Unit=test.service
-
-      // [Install]
-      // WantedBy=timers.target`;
-
-
-
-      //Build services
+      //Systemd units
       try {
 
-        // let getSunriseSunsetService = GLib.build_filenamev([this.systemDir, 'test.service']);
-        // GLib.file_set_contents(getSunriseSunsetService, service.replace(/^\/s+/gm,'').trim());
-
-        // let getSunriseSunsetTimer = GLib.build_filenamev([this.systemDir, 'get-sunrise-sunset.timer']);
-        // GLib.file_set_contents(getSunriseSunsetTimer, timer.replace(/^\/s+/gm,'').trim());
-        /*
-         * Check if file already exists
-         */
-
         async function createSymbolicLink() {
-          let linkPath = `${localDir}/systemd/user/`
-          let units = ['get-sunrise-sunset.timer', 'get-sunrise-sunset.service']
-          let targetDir = './units'
+          const linkPath = `${localDir}/systemd/user/`
+          const targetDir = './units'
+          const units = [
+            'get-sunrise-sunset.timer',
+            'get-sunrise-sunset.service',
+            'night-shift.timer',
+            'night-shift.service',
+            'auto-update-perf-mode.service',
+            'auto-update-perf-mode.path'
+
+          ]
 
           try {
             for(const unit of units) {
-              console.log(`[night-shift] ${unit}`)
-              let fullPath = GLib.build_filenamev([linkPath, unit])
+              const fullPath = GLib.build_filenamev([linkPath, unit])
               const file = Gio.File.new_for_path(fullPath)
+              console.log('night-shift',  file)
               if(file.query_exists(null)) {
                 file.delete(null)
               }
-
-
               await file.make_symbolic_link(`${extensionDir}/${targetDir}/${unit}`, null)
               log(`[night-shift] symlinked ${unit}`)
             }
@@ -144,32 +89,22 @@ export default class PlainExampleExtension extends Extension {
 
         }
 
-      await createSymbolicLink()
+        await createSymbolicLink().catch((e) => console.log(`[night-shift] ${e}`))
 
       GLib.spawn_command_line_async('systemctl --user daemon-reload')
-      log('[night-shift] RAN systemctl --user daemon-reload')
-      GLib.spawn_command_line_async('systemctl --user enable get-sunrise-sunset.timer')
-      GLib.spawn_command_line_async('systemctl --user start get-sunrise-sunset.timer')
-      log('[night-shift] started get-sunrise-sunset timer')
+      log('[night-shift] EXEC systemctl --user daemon-reload')
 
-      // setSessionVariablesNightShift()
-      log('~~~[night-shift] done~~~~')
+      GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
+      GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
+      GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.path') // Do I need to also enable the path?
+      GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.service')
+      log('[night-shift] EXEC get-sunrise-sunset timer')
+
+      log('~~~[night-shift] DONE~~~~')
     } catch (e) {
       console.error(e, '[night-shift] try/catch');
     }
   }
 
 
-    _runSystemdCommand(argv) {
-      try {
-        let proc = Gio.Subprocess.new(
-          argv,
-          Gio.SubprocessFlags.NONE
-        );
-        proc.init(null)
-        log(`Successfully ran: ${argv.join(' ')}`);
-      } catch (e) {
-        console.error(e, 'Failed to run systemd command: `${argv.join(\' \')}`');
-      }
-    }
   }
