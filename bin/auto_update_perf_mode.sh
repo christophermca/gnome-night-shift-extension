@@ -2,8 +2,8 @@
 
 auto_update_perf_mode() {
 
-  STATE_FOLDER="/home/${USER}/.cache/night-shift"
-  IS_DAY_OR_NIGHT="${STATE_FOLDER}/is-day-or-night"
+  CACHE_FOLDER="/home/${USER}/.cache/night-shift"
+  IS_DAY_OR_NIGHT="${CACHE_FOLDER}/is-day-or-night"
   DAY_MODE='day'
   NIGHT_MODE='night'
 

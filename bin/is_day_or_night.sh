@@ -3,10 +3,10 @@
 
 is_day_or_night() {
 
-  STATE_FOLDER="/home/${USER}/.cache/night-shift"
-  IS_DAY_OR_NIGHT="${STATE_FOLDER}/is-day-or-night"
+  CACHE_FOLDER="/home/${USER}/.cache/night-shift"
+  IS_DAY_OR_NIGHT="${CACHE_FOLDER}/is-day-or-night"
 
-  IFS="," read -r stop start <<< "$(cat ${STATE_FOLDER}/times)"
+  IFS="," read -r stop start <<< "$(cat ${CACHE_FOLDER}/times)"
   current_time=`date '+%H:%M'`
 
   if [[ "$current_time" > "$stop" ]]; then
