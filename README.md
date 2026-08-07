@@ -38,3 +38,40 @@ Night Shift relies on **Geoclue 2.0** and the **NOAA API** to determine whether 
 2. Install using the GNOME Extensions manager:
    ```bash
    gnome-extensions install <path-to-zip>
+   ```
+3. Enable the extension in GNOME Settings or Extensions app
+4. Ensure location services are enabled in GNOME Settings (GNOME uses Geoclue 2.0 for location detection)
+
+## 🚀 Usage
+
+Once installed and enabled:
+
+1. The extension automatically detects your location
+2. It monitors sunrise and sunset times
+3. Your desktop automatically switches to Light mode at sunrise
+4. Your desktop automatically switches to Dark mode at sunset
+
+## ⚙️ Configuration
+
+Currently, Night Shift operates automatically with no manual configuration required. The extension:
+- Automatically detects your location using Geoclue
+- Fetches sunrise/sunset times from the NOAA API
+- Switches your theme at the appropriate times
+
+## 🐛 Troubleshooting
+
+- **Extension not switching themes**: Ensure Geoclue is running and location services are enabled
+- **Location not detected**: Check that location services are enabled in GNOME Settings
+- **API errors**: Verify your internet connection and NOAA API availability
+
+## 📝 License
+
+GNU General Public License v3.0 - See LICENSE file for details
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+## 📧 Support
+
+Found a bug or have a feature request? Please open an [issue](https://github.com/christophermca/gnome-night-shift-extension/issues) on GitHub. For security concerns, please contact the maintainer directly.
