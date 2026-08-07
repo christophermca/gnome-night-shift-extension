@@ -30,7 +30,7 @@ Night Shift relies on **Geoclue 2.0** and the **NOAA API** to determine whether 
 
 ### Via GNOME Extensions (Recommended)
 
-[Add link to extensions.gnome.org when published]
+[Coming soon, link to extension on extensions.gnome.org]
 
 ### Manual Installation
 
