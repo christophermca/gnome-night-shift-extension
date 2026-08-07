@@ -22,89 +22,136 @@ import Gio from 'gi://Gio';
 
 const configDir = GLib.get_user_config_dir(); // $HOME/.config
 const homeDir = GLib.get_home_dir(); // /$HOME
+
 const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
 const cacheDir = GLib.get_user_cache_dir(); // $HOME/.cache
+const systemdUserDir = `${localDir}/systemd/user/`
+
+const units = [
+  'get-sunrise-sunset.timer',
+  'get-sunrise-sunset.service',
+  'night-shift.timer',
+  'night-shift.service',
+  'auto-update-perf-mode.service',
+  'auto-update-perf-mode.path'
+]
+
+// Gio required to be wrapped in promisify for async/await to work https://gjs.guide/guides/gio/file-operations.html
+Gio._promisify(
+  Gio.File.prototype,
+  'make_symbolic_link_async',
+  'make_symbolic_link_finish',
+  'delete_async',
+  'delete_finish'
+);
 
 export default class PlainExampleExtension extends Extension {
 
     enable() {
-      this._createAndStartServices().catch((e) => console.log(`[night-shift] ${e}`))
+      this._createAndStartServices()
     }
 
     disable() {
       // should remove service
-      log('[night-shift] goodnight world');
+
+      this.disableServices()
     }
 
-  _removeService() {
-    // clean up files
-  }
-
-  async _createAndStartServices() {
-      const extensionDir = `${localDir}/gnome-shell/extensions/night-shift@christophermca.github.io`
-      const appCacheDir = `${cacheDir}/night-shift/`
+    async disableServices() {
 
 
-      GLib.mkdir_with_parents(extensionDir, 0o700);
-      GLib.mkdir_with_parents(appCacheDir, 0o700);
-
-     /**
-      * TODO
-      * #3
-      * - Create auto-update-gnome-theme.path
-      * - Create auto-update-gnome-theme.service
-      **/
-
-      //Systemd units
       try {
-
-        async function createSymbolicLink() {
-          const linkPath = `${localDir}/systemd/user/`
-          const targetDir = './units'
-          const units = [
-            'get-sunrise-sunset.timer',
-            'get-sunrise-sunset.service',
-            'night-shift.timer',
-            'night-shift.service',
-            'auto-update-perf-mode.service',
-            'auto-update-perf-mode.path'
-
-          ]
-
-          try {
-            for(const unit of units) {
-              const fullPath = GLib.build_filenamev([linkPath, unit])
-              const file = Gio.File.new_for_path(fullPath)
-              console.log('night-shift',  file)
-              if(file.query_exists(null)) {
-                file.delete(null)
-              }
-              await file.make_symbolic_link(`${extensionDir}/${targetDir}/${unit}`, null)
-              log(`[night-shift] symlinked ${unit}`)
-            }
-          } catch (e) {
-            console.error(e, '[night-shift]failed to create timer')
-            return false
-          }
-
+        for(const unit of units) {
+          const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
+          const linkFile = Gio.File.new_for_path(pathToUnit);
+          await this.removeFile(linkFile)
         }
 
-        await createSymbolicLink().catch((e) => console.log(`[night-shift] ${e}`))
+          //Stop and disable services
+          log('[night-shift] EXEC systemctl --user daemon-reload')
+          GLib.spawn_command_line_async('systemctl --user daemon-reload')
 
-      GLib.spawn_command_line_async('systemctl --user daemon-reload')
-      log('[night-shift] EXEC systemctl --user daemon-reload')
+          log('[night-shift] EXEC get-sunrise-sunset.timer')
+          GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer')
 
-      GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
-      GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
-      GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.path') // Do I need to also enable the path?
-      GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.service')
-      log('[night-shift] EXEC get-sunrise-sunset timer')
+          log('[night-shift] EXEC night-shift.timer')
+          GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer')
 
-      log('~~~[night-shift] DONE~~~~')
-    } catch (e) {
-      console.error(e, '[night-shift] try/catch');
+          log('[night-shift] EXEC auto-update-perf-mode.service')
+          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.path') // Do I need to also enable the path?
+          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.service')
+        return true
+        } catch (e) {
+          console.error(`Error: [night-shift] disableServices`)
+        }
+      }
+
+    async removeFile(file) {
+      log('inside remove file')
+      if(file.query_exists(null)) {
+        await file.delete_async(GLib.PRIORITY_DEFAULT, null)
+        let basename = file.get_basename();
+        console.log(`~~~~file deleted~~~~ ${basename}`)
+        };
+        return true
     }
-  }
 
+
+    async _createAndStartServices() {
+        const extensionDir = `${localDir}/gnome-shell/extensions/night-shift@christophermca.github.io`
+        const appCacheDir = `${cacheDir}/night-shift/`
+
+
+        GLib.mkdir_with_parents(extensionDir, 0o700);
+        GLib.mkdir_with_parents(appCacheDir, 0o700);
+        GLib.mkdir_with_parents(systemdUserDir, 0o700);
+
+
+        //Systemd units
+        try {
+          async function createSymbolicLink() {
+            for(const unit of units) {
+              const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
+              const linkFile = Gio.File.new_for_path(pathToUnit);
+              const target = `${extensionDir}/units/${unit}`;
+              const fileName = linkFile.get_basename();
+
+              await this.removeFile(linkFile);
+              await linkFile.make_symbolic_link_async(
+                target,
+                GLib.PRIORITY_DEFAULT,
+                null, // Cancellable
+                (source, result) => {
+                  const success = linkFile.make_symbolic_link_finish(result)
+                  console.log(`[night-shift] symlink ${fileName}`)
+                });
+            }
+            console.log('~~~complete')
+          }
+
+        await createSymbolicLink.call(this).then(() => {
+          log('~~~Starting services~~~')
+
+          log('[night-shift] EXEC systemctl --user daemon-reload')
+          GLib.spawn_command_line_async('systemctl --user daemon-reload')
+
+          log('[night-shift] EXEC get-sunrise-sunset.timer')
+          GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
+
+          log('[night-shift] EXEC night-shift.timer')
+          GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
+
+          log('[night-shift] EXEC auto-update-perf-mode.path')
+          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.path') // Do I need to also enable the path?
+          log('[night-shift] EXEC auto-update-perf-mode.service')
+          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.service')
+
+          log('~~~[night-shift] DONE~~~~')
+        });
+
+      } catch (e) {
+        console.error(e, '[night-shift] try/catch');
+      }
+    }
 
   }

@@ -3,6 +3,7 @@
 import json
 import requests
 import ast
+import re
 
 from pathlib import Path
 from datetime import datetime
@@ -16,19 +17,31 @@ KEY = "night-light-last-coordinates"
 def set_session_variables_night_shift(schema, key):
     try:
         # GET location
-        ## collects data from gsettings
+        executable = "/usr/lib/geoclue-2.0/demos/where-am-i"
+
         value = subprocess.run(
-            ["gsettings", "get", schema, key],
+            [
+                executable,
+                "--timeout=4",
+                "--accuracy-level=4",
+            ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
+            capture_output=True,
             text=True,
             check=True,
-            capture_output=True,
         )
 
         val = value.stdout
-        result = ast.literal_eval(val)
-        lat, lng = result
+        regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
+        lines = val.splitlines()
+        coords = []
+        for line in lines:
+            match = re.match(regex, line)
+            if match:
+                print(f"Found in output:\n '{match.group()}'")
+                coords.append(match.group().split()[1])
 
         # GET sunrise and sunset times.
+        lat, lng = coords
         noaa_url = "https://api.sunrise-sunset.org/v2"
         params = {"lat": lat, "lng": lng}
 
@@ -50,8 +63,12 @@ def set_session_variables_night_shift(schema, key):
             with state_file.open("x", encoding="utf-8") as file:
                 file.write(",".join(times))
 
+    except FileNotFoundError:
+        print(f"Error: could not find {executable}")
+        return None
+
     except subprocess.CalledProcessError:
-        print(f"Error: Cound not retrieve {key} from {schema}")
+        print(f"Error: {e.returncode} \n\n {e.stderr}")
         return None
 
 

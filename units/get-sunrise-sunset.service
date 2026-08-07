@@ -5,7 +5,7 @@ After=geoclue.service network-online.target graphical-session.target
 
 [Service]
 Type=oneshot
-ExecStart=/home/%u/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/bin/is_day_or_night.sh
+ExecStart=/home/%u/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/bin/get_sunrise_sunset.py
 
 
 Restart=on-failure
