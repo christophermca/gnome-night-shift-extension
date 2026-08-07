@@ -25,7 +25,7 @@ const homeDir = GLib.get_home_dir(); // /$HOME
 
 const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
 const cacheDir = GLib.get_user_cache_dir(); // $HOME/.cache
-const systemdUserDir = `${localDir}/systemd/user/`
+const systemdUserDir = GLib.build_filenamev([localDir, 'systemd', 'user']);
 
 const units = [
   'get-sunrise-sunset.timer',
@@ -80,7 +80,6 @@ export default class PlainExampleExtension extends Extension {
           log('[night-shift] EXEC auto-update-perf-mode.service')
           GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.path') // Do I need to also enable the path?
           GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.service')
-        return true
         } catch (e) {
           console.error(`Error: [night-shift] disableServices`)
         }
@@ -91,9 +90,8 @@ export default class PlainExampleExtension extends Extension {
       if(file.query_exists(null)) {
         await file.delete_async(GLib.PRIORITY_DEFAULT, null)
         let basename = file.get_basename();
-        console.log(`~~~~file deleted~~~~ ${basename}`)
+        console.log(`[night-shift] DELETED ${basename}`)
         };
-        return true
     }
 
 
@@ -123,14 +121,12 @@ export default class PlainExampleExtension extends Extension {
                 null, // Cancellable
                 (source, result) => {
                   const success = linkFile.make_symbolic_link_finish(result)
-                  console.log(`[night-shift] symlink ${fileName}`)
+                  console.log(`[night-shift] SYMLINK ${fileName}`)
                 });
             }
-            console.log('~~~complete')
           }
 
         await createSymbolicLink.call(this).then(() => {
-          log('~~~Starting services~~~')
 
           log('[night-shift] EXEC systemctl --user daemon-reload')
           GLib.spawn_command_line_async('systemctl --user daemon-reload')
@@ -150,7 +146,7 @@ export default class PlainExampleExtension extends Extension {
         });
 
       } catch (e) {
-        console.error(e, '[night-shift] try/catch');
+        console.error(e, '[night-shift] Oops! Something happened ');
       }
     }
 
