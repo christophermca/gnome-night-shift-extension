@@ -52,14 +52,10 @@ export default class PlainExampleExtension extends Extension {
     }
 
     disable() {
-      // should remove service
-
       this.disableServices()
     }
 
     async disableServices() {
-
-
       try {
         for(const unit of units) {
           const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
@@ -81,16 +77,15 @@ export default class PlainExampleExtension extends Extension {
           GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.path') // Do I need to also enable the path?
           GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.service')
         } catch (e) {
-          console.error(`Error: [night-shift] disableServices`)
+          console.error(`Error: [night-shift] disableServices ${e}`)
         }
       }
 
     async removeFile(file) {
-      log('inside remove file')
       if(file.query_exists(null)) {
         await file.delete_async(GLib.PRIORITY_DEFAULT, null)
-        let basename = file.get_basename();
-        console.log(`[night-shift] DELETED ${basename}`)
+        const basename = file.get_basename();
+        log(`[night-shift] DELETED ${basename}`)
         };
     }
 
@@ -146,7 +141,7 @@ export default class PlainExampleExtension extends Extension {
         });
 
       } catch (e) {
-        console.error(e, '[night-shift] Oops! Something happened ');
+        console.error(e, '[night-shift] Failed to create and start services');
       }
     }
 
