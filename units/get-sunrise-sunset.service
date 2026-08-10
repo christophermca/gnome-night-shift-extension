@@ -1,7 +1,7 @@
 [Unit]
 Description=Gets local sunrise and sunset times
 Wants=display-manager.service
-After=geoclue.service network-online.target graphical-session.target
+After=geoclue.service network-online.target
 
 [Service]
 Type=oneshot
