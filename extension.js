@@ -45,7 +45,7 @@ Gio._promisify(
   'delete_finish'
 );
 
-export default class PlainExampleExtension extends Extension {
+export default class NightShiftExtension extends Extension {
 
     enable() {
       this._createAndStartServices()
