@@ -14,14 +14,13 @@ SCHEMA = "org.gnome.settings-daemon.plugins.color"
 KEY = "night-light-last-coordinates"
 
 
-def set_session_variables_night_shift(schema, key):
+def get_sunrise_sunset(schema, key):
     try:
         # GET location
-        executable = "/usr/lib/geoclue-2.0/demos/where-am-i"
-
-        value = subprocess.run(
+        agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
+        geoclue_data = subprocess.run(
             [
-                executable,
+                "/usr/lib/geoclue-2.0/demos/where-am-i",
                 "--timeout=4",
                 "--accuracy-level=4",
             ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
@@ -29,19 +28,29 @@ def set_session_variables_night_shift(schema, key):
             text=True,
             check=True,
         )
+        if geoclue_data:
+            print("Cleaning up subprocess...")
+            agent.terminate()
 
-        val = value.stdout
         regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
-        lines = val.splitlines()
+        lines = geoclue_data.stdout.splitlines()
+        if not lines:
+            raise Exception("Could not connect to geoclue")
+            return None
+
         coords = []
+
         for line in lines:
             match = re.match(regex, line)
             if match:
-                print(f"Found in output:\n '{match.group()}'")
                 coords.append(match.group().split()[1])
 
         # GET sunrise and sunset times.
-        lat, lng = coords
+        if coords:
+            lat, lng = coords
+        else:
+            raise TypeError("coordinates returned empty")
+
         noaa_url = "https://api.sunrise-sunset.org/v2"
         params = {"lat": lat, "lng": lng}
 
@@ -67,10 +76,14 @@ def set_session_variables_night_shift(schema, key):
         print(f"Error: could not find {executable}")
         return None
 
-    except subprocess.CalledProcessError:
+    except subprocess.TimeoutExpired as e:
+        print(f"Timeout: {e.timeout} seconds\n\n {e.stdout}")
+        return None
+
+    except subprocess.CalledProcessError as e:
         print(f"Error: {e.returncode} \n\n {e.stderr}")
         return None
 
 
 if __name__ == "__main__":
-    set_session_variables_night_shift(SCHEMA, KEY)
+    get_sunrise_sunset(SCHEMA, KEY)
