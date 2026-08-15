@@ -9,81 +9,87 @@ from pathlib import Path
 from datetime import datetime
 import subprocess
 
-CACHE_FOLDER = "~/.cache/night-shift/"
-SCHEMA = "org.gnome.settings-daemon.plugins.color"
-KEY = "night-light-last-coordinates"
+CACHE_FOLDER = Path.home() / ".cache" / "night-shift"
+NOAA = "https://api.sunrise-sunset.org/v2"
 
 
-def get_sunrise_sunset(schema, key):
+def _get_location():
     try:
         # GET location
         agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
         geoclue_data = subprocess.run(
             [
                 "/usr/lib/geoclue-2.0/demos/where-am-i",
-                "--timeout=4",
                 "--accuracy-level=4",
+                "--timeout=9",
             ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
             capture_output=True,
             text=True,
             check=True,
+            timeout=10,
         )
-        if geoclue_data:
-            print("Cleaning up subprocess...")
-            agent.terminate()
 
         regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
-        lines = geoclue_data.stdout.splitlines()
-        if not lines:
-            raise Exception("Could not connect to geoclue")
-            return None
 
         coords = []
 
-        for line in lines:
+        for line in geoclue_data.stdout.splitlines():
             match = re.match(regex, line)
             if match:
                 coords.append(match.group().split()[1])
 
         # GET sunrise and sunset times.
-        if coords:
-            lat, lng = coords
-        else:
-            raise TypeError("coordinates returned empty")
+        if not coords:
+            raise TypeError("Could not determine coordinates")
 
-        noaa_url = "https://api.sunrise-sunset.org/v2"
-        params = {"lat": lat, "lng": lng}
-
-        # Handle response
-        response = requests.get(noaa_url, params).json()
-        sunrise = datetime.fromisoformat(response["sunrise"]).strftime("%H:%M")
-        sunset = datetime.fromisoformat(response["sunset"]).strftime("%H:%M")
-
-        print({"sunrise": sunrise, "sunset": sunset})
-
-        times = [sunrise, sunset]
-
-        state_file = Path.expanduser(Path(CACHE_FOLDER, "times"))
-
-        if state_file.exists():
-            with state_file.open("w", encoding="utf-8") as file:
-                file.write(",".join(times))
-        else:
-            with state_file.open("x", encoding="utf-8") as file:
-                file.write(",".join(times))
-
-    except FileNotFoundError:
-        print(f"Error: could not find {executable}")
-        return None
+        return coords
 
     except subprocess.TimeoutExpired as e:
-        print(f"Timeout: {e.timeout} seconds\n\n {e.stdout}")
+        print(f"TimeoutExpired: {e.timeout} seconds\n\n {e.stdout}")
         return None
 
     except subprocess.CalledProcessError as e:
         print(f"Error: {e.returncode} \n\n {e.stderr}")
         return None
 
+    finally:
+        print("Terminating geoclue agent")
+        agent.terminate()  # Gracefully exits
+        agent.wait()  # Prevents zombie processes
+
+
+def _get_sunrise_sunset(lat, lng):
+    try:
+        params = {"lat": lat, "lng": lng}
+
+        # Handle response
+        response = requests.get(NOAA, params)
+        response.raise_for_status()
+
+        data = response.json()
+
+        sunrise = datetime.fromisoformat(data["sunrise"]).strftime("%H:%M")
+        sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
+
+        times = [sunrise, sunset]
+
+        # update cache
+        state_file = Path(CACHE_FOLDER, "times")
+
+        with state_file.open("w", encoding="utf-8") as file:
+            file.write(",".join(times))
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred (e.g., 404, 500): {http_err}")
+
+    finally:
+        print("Done")
+
+
+def main():
+    coords = _get_location()
+    _get_sunrise_sunset(*coords)
+
 
 if __name__ == "__main__":
-    get_sunrise_sunset(SCHEMA, KEY)
+    main()
