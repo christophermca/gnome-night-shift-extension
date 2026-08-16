@@ -16,10 +16,12 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { NightShiftIndicator } from './indicator.js';
 
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 const configDir = GLib.get_user_config_dir(); // $HOME/.config
 const homeDir = GLib.get_home_dir(); // /$HOME
 
@@ -49,10 +51,22 @@ export default class NightShiftExtension extends Extension {
 
     enable() {
       this._createAndStartServices()
+      this._indicator = new NightShiftIndicator()
+      this._settings = this.getSettings()
+
+      Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
+      this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
     }
 
     disable() {
+      if(this._indicator) {
+        this._indicator.destroy();
+        this._indicator = null;
+        this._settings = null;
+      }
+
       this.disableServices()
+
     }
 
     async disableServices() {
