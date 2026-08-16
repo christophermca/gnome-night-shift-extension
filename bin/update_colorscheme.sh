@@ -1,6 +1,6 @@
 #!/bin/bash
 
-auto_update_perf_mode() {
+update_colorscheme() {
 
   CACHE_FOLDER="/home/${USER}/.cache/night-shift"
   IS_DAY_OR_NIGHT="${CACHE_FOLDER}/is-day-or-night"
@@ -26,5 +26,5 @@ fi
 
 }
 
-auto_update_perf_mode
+update_colorscheme
 

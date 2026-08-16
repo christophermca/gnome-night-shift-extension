@@ -34,8 +34,8 @@ const units = [
   'get-sunrise-sunset.service',
   'night-shift.timer',
   'night-shift.service',
-  'auto-update-perf-mode.service',
-  'auto-update-perf-mode.path'
+  'update-colorscheme.service',
+  'update-colorscheme.path'
 ]
 
 // Gio required to be wrapped in promisify for async/await to work https://gjs.guide/guides/gio/file-operations.html
@@ -87,9 +87,9 @@ export default class NightShiftExtension extends Extension {
           log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer')
 
-          log('[night-shift] EXEC auto-update-perf-mode.service')
-          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.path') // Do I need to also enable the path?
-          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.service')
+          log('[night-shift] EXEC update-colorscheme.service')
+          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.path') // Do I need to also enable the path?
+          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.service')
         } catch (e) {
           console.error(`Error: [night-shift] disableServices ${e}`)
         }
@@ -146,10 +146,10 @@ export default class NightShiftExtension extends Extension {
           log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
 
-          log('[night-shift] EXEC auto-update-perf-mode.path')
-          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.path') // Do I need to also enable the path?
-          log('[night-shift] EXEC auto-update-perf-mode.service')
-          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.service')
+          log('[night-shift] EXEC update-colorscheme.path')
+          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.path') // Do I need to also enable the path?
+          log('[night-shift] EXEC update-colorscheme.service')
+          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.service')
 
           log('~~~[night-shift] DONE~~~~')
         });

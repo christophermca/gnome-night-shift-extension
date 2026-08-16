@@ -4,7 +4,7 @@ Wants=network-online.target geoclue.service
 After=network-online.target
 
 [Timer]
-OnCalendar=*-*-* *:*:00
+OnCalendar=daily
 OnActiveSec=0
 Persistent=true
 Unit=get-sunrise-sunset.service

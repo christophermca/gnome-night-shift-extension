@@ -1,0 +1,11 @@
+[Unit]
+Description=Sets gsettings prefer-<light|dark>
+
+[Service]
+Type=oneshot
+ExecStart=/home/%u/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/bin/update_colorscheme.sh
+
+[Install]
+WantedBy=default.target
+
+
