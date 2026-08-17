@@ -55,15 +55,14 @@ export default class NightShiftExtension extends Extension {
       this._settings = this.getSettings()
 
       Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
+      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
       this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
     }
 
     disable() {
-      if(this._indicator) {
-        this._indicator.destroy();
-        this._indicator = null;
-        this._settings = null;
-      }
+      this._indicator?.destroy();
+      this._indicator = null;
+      this._settings = null;
 
       this.disableServices()
 

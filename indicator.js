@@ -13,8 +13,5 @@ export const NightShiftIndicator = GObject.registerClass(
       });
 
       this.add_child(icon);
-      this.menu.addAction("Preferences", () => {
-        this.openPreferences()
-      });
-    }
-})
+  }
+});
