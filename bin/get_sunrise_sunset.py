@@ -4,10 +4,14 @@ import json
 import requests
 import ast
 import re
+import gi
+import subprocess
 
 from pathlib import Path
 from datetime import datetime
-import subprocess
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio
 
 CACHE_FOLDER = Path.home() / ".cache" / "night-shift"
 NOAA = "https://api.sunrise-sunset.org/v2"
@@ -29,6 +33,7 @@ def _get_location():
             timeout=10,
         )
 
+        print(geoclue_data)
         regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
 
         coords = []
@@ -42,6 +47,7 @@ def _get_location():
         if not coords:
             raise TypeError("Could not determine coordinates")
 
+        print(coords)
         return coords
 
     except subprocess.TimeoutExpired as e:
@@ -72,12 +78,27 @@ def _get_sunrise_sunset(lat, lng):
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
 
         times = [sunrise, sunset]
+        print(times)
+        time_string = ",".join(times)
+
+        # settings = Gio.Settings.new("org.gnome.shell.extensions.night-shift")
+        # settings.set_string("times", time_string)
+        # settings.apply()
+        subprocess.run(
+            [
+                "gsettings",
+                "set",
+                "org.gnome.shell.extensions.night-shift",
+                "times",
+                time_string,
+            ],
+        )
 
         # update cache
         state_file = Path(CACHE_FOLDER, "times")
 
         with state_file.open("w", encoding="utf-8") as file:
-            file.write(",".join(times))
+            file.write(time_string)
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred (e.g., 404, 500): {http_err}")

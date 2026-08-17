@@ -4,5 +4,8 @@
     <key name="show-indicator" type="b">
       <default>true</default>
     </key>
+    <key name="times" type="s">
+      <default>"67,76"</default>
+    </key>
   </schema>
 </schemalist>

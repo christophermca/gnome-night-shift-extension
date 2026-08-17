@@ -55,8 +55,17 @@ export default class NightShiftExtension extends Extension {
       this._settings = this.getSettings()
 
       Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
-      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
       this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
+
+      const times = this._settings.get_string('times');
+      log(`[night-shift] times: ${times}`)
+      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
+      this._settings.connect('changed::times',(settings, key) => {
+        log(`[night-shift] Settings changed: ${settings.get_string(key)}`)
+        log(`[night-shift] ${this}`)
+        this._indicator._dataItem.label.text = times;
+      });
+
     }
 
     disable() {

@@ -5,7 +5,7 @@ After=network-online.target
 
 [Timer]
 OnCalendar=daily
-OnActiveSec=0
+onActiveSec=0
 Persistent=true
 Unit=get-sunrise-sunset.service
 
