@@ -50,20 +50,23 @@ Gio._promisify(
 export default class NightShiftExtension extends Extension {
 
     enable() {
+      log('\n\n--------\n\n[night-shift] can you find this [find-me]')
       this._createAndStartServices()
       this._indicator = new NightShiftIndicator()
       this._settings = this.getSettings()
 
       Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
       this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
+      this._settings.bind('times', this._indicator._dataItem.label, 'text', Gio.SettingsBindFlags.GET);
 
-      const times = this._settings.get_string('times');
-      log(`[night-shift] times: ${times}`)
       this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
-      this._settings.connect('changed::times',(settings, key) => {
-        log(`[night-shift] Settings changed: ${settings.get_string(key)}`)
+
+      log(`[night-shift] ${this._indicator._dataItem}`)
+      this._settings.connect('changed::times',(settingsObj, key) => {
+        const state = settingsObj.get_string(key);
+        log(`[night-shift] Settings changed to : ${state} `)
         log(`[night-shift] ${this}`)
-        this._indicator._dataItem.label.text = times;
+        this._indicator._dataItem.label.text = state;
       });
 
     }
@@ -107,7 +110,6 @@ export default class NightShiftExtension extends Extension {
       if(file.query_exists(null)) {
         await file.delete_async(GLib.PRIORITY_DEFAULT, null)
         const basename = file.get_basename();
-        log(`[night-shift] DELETED ${basename}`)
         };
     }
 
@@ -145,21 +147,15 @@ export default class NightShiftExtension extends Extension {
 
         await createSymbolicLink.call(this).then(() => {
 
-          log('[night-shift] EXEC systemctl --user daemon-reload')
           GLib.spawn_command_line_async('systemctl --user daemon-reload')
 
-          log('[night-shift] EXEC get-sunrise-sunset.timer')
           GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
 
-          log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
 
-          log('[night-shift] EXEC update-colorscheme.path')
           GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.path') // Do I need to also enable the path?
-          log('[night-shift] EXEC update-colorscheme.service')
           GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.service')
 
-          log('~~~[night-shift] DONE~~~~')
         });
 
       } catch (e) {

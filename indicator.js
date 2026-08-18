@@ -8,7 +8,7 @@ import Gio from 'gi://Gio';
 export const NightShiftIndicator = GObject.registerClass(
   class NightShiftIndicator extends PanelMenu.Button {
     constructor() {
-      super(1.5, "NightShiftIndicator");
+      super(1, "NightShiftIndicator");
 
       let icon = new St.Icon({
         icon_name: 'view-mirror-symbolic.svg',
@@ -17,12 +17,7 @@ export const NightShiftIndicator = GObject.registerClass(
 
       this.add_child(icon);
 
-      this._dataItem = new PopupMenu.PopupMenuItem('Loading data...', {
-        activate:false,
-        reactive:true,
-        hover:true,
-      });
-
+      this._dataItem = new PopupMenu.PopupMenuItem('Loading data...', {});
       this.menu.addMenuItem(this._dataItem);
   }
 });

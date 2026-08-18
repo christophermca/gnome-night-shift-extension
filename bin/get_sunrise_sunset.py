@@ -1,6 +1,7 @@
 #!/bin/python
 
 import json
+import os
 import requests
 import ast
 import re
@@ -15,6 +16,17 @@ from gi.repository import Gio
 
 CACHE_FOLDER = Path.home() / ".cache" / "night-shift"
 NOAA = "https://api.sunrise-sunset.org/v2"
+SCHEMA_ID = "org.gnome.shell.extensions.night-shift"
+
+schema_dir = os.path.expanduser(
+    Path.home()
+    / ".local"
+    / "share"
+    / "gnome-shell"
+    / "extensions"
+    / "night-shift@christophermca.github.io"
+    / "schemas"
+)
 
 
 def _get_location():
@@ -33,7 +45,6 @@ def _get_location():
             timeout=10,
         )
 
-        print(geoclue_data)
         regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
 
         coords = []
@@ -47,7 +58,6 @@ def _get_location():
         if not coords:
             raise TypeError("Could not determine coordinates")
 
-        print(coords)
         return coords
 
     except subprocess.TimeoutExpired as e:
@@ -66,6 +76,10 @@ def _get_location():
 
 def _get_sunrise_sunset(lat, lng):
     try:
+        # Load schema
+        schema_source = Gio.SettingsSchemaSource.new_from_directory(
+            schema_dir, Gio.SettingsSchemaSource.get_default(), False
+        )
         params = {"lat": lat, "lng": lng}
 
         # Handle response
@@ -78,27 +92,30 @@ def _get_sunrise_sunset(lat, lng):
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
 
         times = [sunrise, sunset]
-        print(times)
         time_string = ",".join(times)
 
-        # settings = Gio.Settings.new("org.gnome.shell.extensions.night-shift")
-        # settings.set_string("times", time_string)
-        # settings.apply()
-        subprocess.run(
-            [
-                "gsettings",
-                "set",
-                "org.gnome.shell.extensions.night-shift",
-                "times",
-                time_string,
-            ],
-        )
+        schemaObj = schema_source.lookup(SCHEMA_ID, True)
+        settings = Gio.Settings.new_full(schemaObj, None, None)
+        value = settings.get_string("times")
+        print(f"[night-shift] Value: {value}")
+
+        print(f"[night-shift] Times: {time_string}")
+        settings.set_string("times", time_string)
+        # subprocess.run(
+        #     [
+        #         "gsettings",
+        #         "set",
+        #         SCHEMA_ID,
+        #         "times",
+        #         time_string,
+        #     ],
+        # )
 
         # update cache
-        state_file = Path(CACHE_FOLDER, "times")
+        # state_file = Path(CACHE_FOLDER, "times")
 
-        with state_file.open("w", encoding="utf-8") as file:
-            file.write(time_string)
+        # with state_file.open("w", encoding="utf-8") as file:
+        #     file.write(time_string)
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred (e.g., 404, 500): {http_err}")
