@@ -58,12 +58,11 @@ export default class NightShiftExtension extends Extension {
 
       this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
 
-      this._specifiedId = this._settings.connect('changed', (settings, key) => {
+      this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
         let newValue = settings.get_string(key)
         console.log(`[night-shift] key: ${key}, ${newValue}`)
+        this.handleShiftChange(newValue);
       });
-
-     log(`find-me [night-shift] ${this._specifiedId}`);
     }
 
     disable() {
@@ -80,6 +79,18 @@ export default class NightShiftExtension extends Extension {
       this._settings = null;
     }
 
+    handleShiftChange(dayNight) {
+      const desktopSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
+      let shift;
+      if (dayNight == 'day') {
+        shift = 'default'
+      } else if (dayNight == 'night') {
+        shift = 'prefer-dark'
+      }
+
+      !!shift && desktopSettings.set_string('color-scheme', shift)
+
+    }
     async disableServices() {
       try {
         for(const unit of units) {

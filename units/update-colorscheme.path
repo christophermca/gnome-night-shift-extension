@@ -1,9 +1,0 @@
-[Unit]
-Description=watch is_day_or_night file for changes
-
-[Path]
-PathModified=%h/.cache/night-shift/is-day-or-night
-
-[Install]
-WantedBy=default.target
-

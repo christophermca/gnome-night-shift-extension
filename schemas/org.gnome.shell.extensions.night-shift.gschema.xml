@@ -8,6 +8,7 @@
       <default>"sunrise,sunset"</default>
     </key>
     <key name="day-or-night" type="s">
+      <summary>day or night</summary>
       <default>"day"</default>
     </key>
   </schema>
