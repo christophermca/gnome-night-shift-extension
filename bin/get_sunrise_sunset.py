@@ -76,10 +76,6 @@ def _get_location():
 
 def _get_sunrise_sunset(lat, lng):
     try:
-        # Load schema
-        schema_source = Gio.SettingsSchemaSource.new_from_directory(
-            schema_dir, Gio.SettingsSchemaSource.get_default(), False
-        )
         params = {"lat": lat, "lng": lng}
 
         # Handle response
@@ -94,28 +90,17 @@ def _get_sunrise_sunset(lat, lng):
         times = [sunrise, sunset]
         time_string = ",".join(times)
 
+        # Load schema
+        schema_source = Gio.SettingsSchemaSource.new_from_directory(
+            schema_dir, Gio.SettingsSchemaSource.get_default(), False
+        )
+
+        # initialize gsettings obj
         schemaObj = schema_source.lookup(SCHEMA_ID, True)
         settings = Gio.Settings.new_full(schemaObj, None, None)
-        value = settings.get_string("times")
-        print(f"[night-shift] Value: {value}")
 
-        print(f"[night-shift] Times: {time_string}")
+        # update settings
         settings.set_string("times", time_string)
-        # subprocess.run(
-        #     [
-        #         "gsettings",
-        #         "set",
-        #         SCHEMA_ID,
-        #         "times",
-        #         time_string,
-        #     ],
-        # )
-
-        # update cache
-        # state_file = Path(CACHE_FOLDER, "times")
-
-        # with state_file.open("w", encoding="utf-8") as file:
-        #     file.write(time_string)
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred (e.g., 404, 500): {http_err}")

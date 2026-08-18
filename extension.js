@@ -34,8 +34,6 @@ const units = [
   'get-sunrise-sunset.service',
   'night-shift.timer',
   'night-shift.service',
-  'update-colorscheme.service',
-  'update-colorscheme.path'
 ]
 
 // Gio required to be wrapped in promisify for async/await to work https://gjs.guide/guides/gio/file-operations.html
@@ -50,7 +48,6 @@ Gio._promisify(
 export default class NightShiftExtension extends Extension {
 
     enable() {
-      log('\n\n--------\n\n[night-shift] can you find this [find-me]')
       this._createAndStartServices()
       this._indicator = new NightShiftIndicator()
       this._settings = this.getSettings()
@@ -61,23 +58,26 @@ export default class NightShiftExtension extends Extension {
 
       this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
 
-      log(`[night-shift] ${this._indicator._dataItem}`)
-      this._settings.connect('changed::times',(settingsObj, key) => {
-        const state = settingsObj.get_string(key);
-        log(`[night-shift] Settings changed to : ${state} `)
-        log(`[night-shift] ${this}`)
-        this._indicator._dataItem.label.text = state;
+      this._specifiedId = this._settings.connect('changed', (settings, key) => {
+        let newValue = settings.get_string(key)
+        console.log(`[night-shift] key: ${key}, ${newValue}`)
       });
 
+     log(`find-me [night-shift] ${this._specifiedId}`);
     }
 
     disable() {
-      this._indicator?.destroy();
-      this._indicator = null;
-      this._settings = null;
-
       this.disableServices()
 
+      this._indicator?.destroy();
+      this._indicator = null;
+
+      if(this._specifiedId) {
+        this._settings.disconnect(this._specifiedId);
+        this._specifiedId = null
+      }
+
+      this._settings = null;
     }
 
     async disableServices() {

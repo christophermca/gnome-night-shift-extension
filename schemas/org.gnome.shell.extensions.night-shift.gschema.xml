@@ -5,7 +5,10 @@
       <default>true</default>
     </key>
     <key name="times" type="s">
-      <default>"67,76"</default>
+      <default>"sunrise,sunset"</default>
+    </key>
+    <key name="day-or-night" type="s">
+      <default>"day"</default>
     </key>
   </schema>
 </schemalist>
