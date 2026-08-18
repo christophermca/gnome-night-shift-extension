@@ -100,18 +100,12 @@ export default class NightShiftExtension extends Extension {
         }
 
           //Stop and disable services
-          log('[night-shift] EXEC systemctl --user daemon-reload')
           GLib.spawn_command_line_async('systemctl --user daemon-reload')
 
-          log('[night-shift] EXEC get-sunrise-sunset.timer')
           GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer')
 
-          log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer')
 
-          log('[night-shift] EXEC update-colorscheme.service')
-          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.path') // Do I need to also enable the path?
-          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.service')
         } catch (e) {
           console.error(`Error: [night-shift] disableServices ${e}`)
         }
@@ -163,9 +157,6 @@ export default class NightShiftExtension extends Extension {
           GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
 
           GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
-
-          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.path') // Do I need to also enable the path?
-          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.service')
 
         });
 
