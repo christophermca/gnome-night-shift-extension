@@ -3,44 +3,28 @@
 
 is_day_or_night() {
 
+  GSETTINGS_SCHEMA_DIR="/home/${USER}/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/schemas/"
+  SCHEMA_ID="org.gnome.shell.extensions.night-shift"
   CACHE_FOLDER="/home/${USER}/.cache/night-shift"
   IS_DAY_OR_NIGHT="${CACHE_FOLDER}/is-day-or-night"
 
-  IFS="," read -r stop start <<< "$(cat ${CACHE_FOLDER}/times)"
-  current_time=`date '+%H:%M'`
+  # GET times
+  times=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID times)
 
-  if [[ "$current_time" > "$stop" ]]; then
+  IFS="," read -r sunrise sunset <<< "$times"
+  current_time=`date '+%H:%M'` # 24hr format
+
+  # Calculate day-or-night
+  if [[ "$current_time" > "$sunrise" ]]; then
     DAY_NIGHT='day'
   fi
 
-  if [[ "$current_time" > "$start" ]]; then
+  if [[ "$current_time" > "$sunset" ]]; then
     DAY_NIGHT='night'
   fi
 
-
-  save_configuration() {
-    echo "save_configuration: is cache up-to-date?"
-    local -r day_night_mode=$(cat $IS_DAY_OR_NIGHT)
-
-    if [[ -n $DAY_NIGHT && $day_night_mode != $DAY_NIGHT ]]; then
-
-      if [[ ! -f  $IS_DAY_OR_NIGHT ]]; then
-        touch $IS_DAY_OR_NIGHT
-      fi
-
-      echo "Updating cache"
-
-      echo $DAY_NIGHT > $IS_DAY_OR_NIGHT
-
-      export DAY_NIGHT=$DAY_NIGHT
-
-    else
-      # does nothing
-      echo "The current state is the same"
-    fi
-  }
-
-save_configuration
+  # set day-or-night
+  $(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings set $SCHEMA_ID "day-or-night" $DAY_NIGHT)
 
 }
 

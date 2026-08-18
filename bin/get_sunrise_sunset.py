@@ -1,16 +1,32 @@
 #!/bin/python
 
 import json
+import os
 import requests
 import ast
 import re
+import gi
+import subprocess
 
 from pathlib import Path
 from datetime import datetime
-import subprocess
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio
 
 CACHE_FOLDER = Path.home() / ".cache" / "night-shift"
 NOAA = "https://api.sunrise-sunset.org/v2"
+SCHEMA_ID = "org.gnome.shell.extensions.night-shift"
+
+schema_dir = os.path.expanduser(
+    Path.home()
+    / ".local"
+    / "share"
+    / "gnome-shell"
+    / "extensions"
+    / "night-shift@christophermca.github.io"
+    / "schemas"
+)
 
 
 def _get_location():
@@ -72,12 +88,19 @@ def _get_sunrise_sunset(lat, lng):
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
 
         times = [sunrise, sunset]
+        time_string = ",".join(times)
 
-        # update cache
-        state_file = Path(CACHE_FOLDER, "times")
+        # Load schema
+        schema_source = Gio.SettingsSchemaSource.new_from_directory(
+            schema_dir, Gio.SettingsSchemaSource.get_default(), False
+        )
 
-        with state_file.open("w", encoding="utf-8") as file:
-            file.write(",".join(times))
+        # initialize gsettings obj
+        schemaObj = schema_source.lookup(SCHEMA_ID, True)
+        settings = Gio.Settings.new_full(schemaObj, None, None)
+
+        # update settings
+        settings.set_string("times", time_string)
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred (e.g., 404, 500): {http_err}")

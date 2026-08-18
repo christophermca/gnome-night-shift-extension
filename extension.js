@@ -16,10 +16,12 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import { NightShiftIndicator } from './indicator.js';
 
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 const configDir = GLib.get_user_config_dir(); // $HOME/.config
 const homeDir = GLib.get_home_dir(); // /$HOME
 
@@ -32,8 +34,6 @@ const units = [
   'get-sunrise-sunset.service',
   'night-shift.timer',
   'night-shift.service',
-  'auto-update-perf-mode.service',
-  'auto-update-perf-mode.path'
 ]
 
 // Gio required to be wrapped in promisify for async/await to work https://gjs.guide/guides/gio/file-operations.html
@@ -49,12 +49,48 @@ export default class NightShiftExtension extends Extension {
 
     enable() {
       this._createAndStartServices()
+      this._indicator = new NightShiftIndicator()
+      this._settings = this.getSettings()
+
+      Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
+      this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
+      this._settings.bind('times', this._indicator._dataItem.label, 'text', Gio.SettingsBindFlags.GET);
+
+      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
+
+      this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
+        let newValue = settings.get_string(key)
+        console.log(`[night-shift] key: ${key}, ${newValue}`)
+        this.handleShiftChange(newValue);
+      });
     }
 
     disable() {
       this.disableServices()
+
+      this._indicator?.destroy();
+      this._indicator = null;
+
+      if(this._specifiedId) {
+        this._settings.disconnect(this._specifiedId);
+        this._specifiedId = null
+      }
+
+      this._settings = null;
     }
 
+    handleShiftChange(dayNight) {
+      const desktopSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
+      let shift;
+      if (dayNight == 'day') {
+        shift = 'default'
+      } else if (dayNight == 'night') {
+        shift = 'prefer-dark'
+      }
+
+      !!shift && desktopSettings.set_string('color-scheme', shift)
+
+    }
     async disableServices() {
       try {
         for(const unit of units) {
@@ -73,9 +109,9 @@ export default class NightShiftExtension extends Extension {
           log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer')
 
-          log('[night-shift] EXEC auto-update-perf-mode.service')
-          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.path') // Do I need to also enable the path?
-          GLib.spawn_command_line_async('systemctl --user disable --now auto-update-perf-mode.service')
+          log('[night-shift] EXEC update-colorscheme.service')
+          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.path') // Do I need to also enable the path?
+          GLib.spawn_command_line_async('systemctl --user disable --now update-colorscheme.service')
         } catch (e) {
           console.error(`Error: [night-shift] disableServices ${e}`)
         }
@@ -85,7 +121,6 @@ export default class NightShiftExtension extends Extension {
       if(file.query_exists(null)) {
         await file.delete_async(GLib.PRIORITY_DEFAULT, null)
         const basename = file.get_basename();
-        log(`[night-shift] DELETED ${basename}`)
         };
     }
 
@@ -123,21 +158,15 @@ export default class NightShiftExtension extends Extension {
 
         await createSymbolicLink.call(this).then(() => {
 
-          log('[night-shift] EXEC systemctl --user daemon-reload')
           GLib.spawn_command_line_async('systemctl --user daemon-reload')
 
-          log('[night-shift] EXEC get-sunrise-sunset.timer')
           GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
 
-          log('[night-shift] EXEC night-shift.timer')
           GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
 
-          log('[night-shift] EXEC auto-update-perf-mode.path')
-          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.path') // Do I need to also enable the path?
-          log('[night-shift] EXEC auto-update-perf-mode.service')
-          GLib.spawn_command_line_async('systemctl --user enable --now auto-update-perf-mode.service')
+          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.path') // Do I need to also enable the path?
+          GLib.spawn_command_line_async('systemctl --user enable --now update-colorscheme.service')
 
-          log('~~~[night-shift] DONE~~~~')
         });
 
       } catch (e) {
