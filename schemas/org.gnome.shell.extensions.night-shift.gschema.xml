@@ -11,5 +11,17 @@
       <summary>day or night</summary>
       <default>"day"</default>
     </key>
+    <key name="last-known-coordinates" type="s">
+      <summary>Last known corrdinates</summary>
+      <default>""</default>
+    </key>
+    <key name="timestamp" type="s">
+      <description>timestamp of last run</description>
+      <default>""</default>
+    </key>
+    <key name="tzid" type="s">
+      <summary>timezone id</summary>
+      <default>""</default>
+    </key>
   </schema>
 </schemalist>

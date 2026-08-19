@@ -1,20 +1,19 @@
 #!/bin/python
 
+import argparse
 import json
 import os
 import requests
-import ast
 import re
 import gi
 import subprocess
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone, date
 
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio
 
-CACHE_FOLDER = Path.home() / ".cache" / "night-shift"
 NOAA = "https://api.sunrise-sunset.org/v2"
 SCHEMA_ID = "org.gnome.shell.extensions.night-shift"
 
@@ -28,37 +27,65 @@ schema_dir = os.path.expanduser(
     / "schemas"
 )
 
+# Load schema
+schema_source = Gio.SettingsSchemaSource.new_from_directory(
+    schema_dir, Gio.SettingsSchemaSource.get_default(), False
+)
 
-def _get_location():
+
+def _get_location(override=False):
     try:
-        # GET location
+        # Get location data from Geoclue
         agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
-        geoclue_data = subprocess.run(
+        geoclue_data = subprocess.Popen(
             [
                 "/usr/lib/geoclue-2.0/demos/where-am-i",
-                "--accuracy-level=4",
-                "--timeout=9",
+                "--accuracy-level=8",
+                # "--timeout=9",
             ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
-            capture_output=True,
             text=True,
-            check=True,
-            timeout=10,
+            stdout=subprocess.PIPE,
         )
 
         regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
+        timestamp = r"^(Timestamp:).*([\.\-\d+]+)"
 
         coords = []
 
-        for line in geoclue_data.stdout.splitlines():
+        # READS response for LAT and LNG
+
+        for line in iter(geoclue_data.stdout.readline, ""):
             match = re.match(regex, line)
+
             if match:
+                print(f"[night-shift] {match.group()}")
                 coords.append(match.group().split()[1])
 
-        # GET sunrise and sunset times.
-        if not coords:
-            raise TypeError("Could not determine coordinates")
+            if len(coords) == 2:
+                geoclue_data.terminate()
+                break
 
-        return coords
+        if not coords:
+            raise TypeError(
+                "Could not determine location. Please check your geoclue configuration"
+            )
+
+        settings = _settings()
+
+        # did location update?
+        previous_coordinates = settings.get_string("last-known-coordinates")
+        coords_string = ",".join(coords)
+
+        if override:
+            print(f"Override: {override}")
+
+        if override or (coords_string != previous_coordinates):
+            settings.set_string("last-known-coordinates", coords_string)
+            return coords
+        else:
+            print(
+                f"Locations are the same (old/new) '{previous_coordinates}'/'{coords_string}'"
+            )
 
     except subprocess.TimeoutExpired as e:
         print(f"TimeoutExpired: {e.timeout} seconds\n\n {e.stdout}")
@@ -84,22 +111,21 @@ def _get_sunrise_sunset(lat, lng):
 
         data = response.json()
 
+        tzid = data["tzid"]
         sunrise = datetime.fromisoformat(data["sunrise"]).strftime("%H:%M")
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
 
         times = [sunrise, sunset]
         time_string = ",".join(times)
 
-        # Load schema
-        schema_source = Gio.SettingsSchemaSource.new_from_directory(
-            schema_dir, Gio.SettingsSchemaSource.get_default(), False
-        )
-
-        # initialize gsettings obj
-        schemaObj = schema_source.lookup(SCHEMA_ID, True)
-        settings = Gio.Settings.new_full(schemaObj, None, None)
-
         # update settings
+
+        settings = _settings()
+        settings.set_string(
+            "timestamp", f"{datetime.now().astimezone().isoformat()}"
+        )
+        print(data)
+        settings.set_string("tzid", tzid)
         settings.set_string("times", time_string)
 
     except requests.exceptions.HTTPError as http_err:
@@ -109,10 +135,25 @@ def _get_sunrise_sunset(lat, lng):
         print("Done")
 
 
-def main():
-    coords = _get_location()
-    _get_sunrise_sunset(*coords)
+def _settings():
+    # initialize gsettings obj
+    schemaObj = schema_source.lookup(SCHEMA_ID, True)
+    settings = Gio.Settings.new_full(schemaObj, None, None)
+
+    return settings
+
+
+def main(override=False):
+    coords = _get_location(override)
+
+    if coords:
+        _get_sunrise_sunset(*coords)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Get the times for the sunrise/sunset"
+    )
+    parser.add_argument("-f", action="store_true")
+    args = parser.parse_args()
+    main(args.f)

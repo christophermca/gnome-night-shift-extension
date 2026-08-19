@@ -1,5 +1,4 @@
-/* extension.js
- *
+/*
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 2 of the License, or
@@ -24,7 +23,6 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { NightShiftIndicator } from './indicator.js';
 
-
 const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
 const systemdUserDir = GLib.build_filenamev([localDir, 'systemd', 'user']);
 
@@ -48,26 +46,19 @@ export default class NightShiftExtension extends Extension {
 
     enable() {
       this._createAndStartServices()
-      this._indicator = new NightShiftIndicator()
-      this._settings = this.getSettings()
-
-      Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
-      this._settings.bind('show-indicator', this._indicator, 'visible', Gio.SettingsBindFlags.DEFAULT);
-      this._settings.bind('times', this._indicator._dataItem.label, 'text', Gio.SettingsBindFlags.GET);
-
-      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
-
-      this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
-        let newValue = settings.get_string(key)
-        this.handleShiftChange(newValue);
-      });
+      this._handleIndicator()
     }
 
     disable() {
-      this.disableServices()
+      this._disableServices()
 
       this._indicator?.destroy();
       this._indicator = null;
+
+      if(this._updateTimesId) {
+        this._settings.disconnect(this._updateTimesId);
+        this._updateTimesId = null
+      }
 
       if(this._specifiedId) {
         this._settings.disconnect(this._specifiedId);
@@ -78,18 +69,21 @@ export default class NightShiftExtension extends Extension {
     }
 
     handleShiftChange(dayNight) {
-      const desktopSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
       let shift;
+      const desktopSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
+      const current = desktopSettings.get_string('color-scheme')
+
       if (dayNight == 'day') {
         shift = 'default'
       } else if (dayNight == 'night') {
         shift = 'prefer-dark'
       }
 
-      !!shift && desktopSettings.set_string('color-scheme', shift)
+      log(`shift: ${!!shift} currentVshift: ${current != shift}`)
+      !!shift && current != shift && desktopSettings.set_string('color-scheme', shift)
     }
 
-    async disableServices() {
+    async _disableServices() {
       try {
         for(const unit of units) {
           const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
@@ -103,7 +97,7 @@ export default class NightShiftExtension extends Extension {
           GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer');
 
       } catch (e) {
-        console.error(`Error: [night-shift] disableServices ${e}`);
+        console.error(`Error: [night-shift] _disableServices ${e}`);
       }
     }
 
@@ -144,8 +138,35 @@ export default class NightShiftExtension extends Extension {
         });
 
       } catch (e) {
-        console.error(e, '[night-shift] Failed to create and start services');
+        console.error(`[night-shift] Failed to create and start services ${e}`);
       }
     }
 
-  }
+    async _handleIndicator() {
+      try {
+        this._settings = this.getSettings()
+        this._indicator = new NightShiftIndicator(this._settings)
+
+
+        // Place indicator
+        Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
+
+        this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
+
+        this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
+          let newValue = settings.get_string(key)
+          this.handleShiftChange(newValue);
+        });
+
+        this._updateTimesId = this._settings.connect('changed::times', (settings, key) => {
+          const newValue = settings.get_string(key)
+          const [sunrise, sunset] = newValue.split(',')
+          this._indicator.sunrise.label.text = sunrise
+          this._indicator.sunset.label.text = sunset
+        });
+
+      } catch (e) {
+      error(`Error in _handleIndicator: ${e}`, )
+      }
+    }
+}
