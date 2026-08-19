@@ -126,7 +126,7 @@ export default class NightShiftExtension extends Extension {
             const target = `${this.path}/units/${unit}`;
             const fileName = linkFile.get_basename();
 
-            // await this._removeFile(linkFile);
+            await this._removeFile(linkFile);
             await linkFile.make_symbolic_link_async(
               target,
               GLib.PRIORITY_DEFAULT,
