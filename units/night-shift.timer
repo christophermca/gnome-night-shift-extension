@@ -1,10 +1,9 @@
 [Unit]
 Description=timer night-shift
-Wants=network.target
 
 [Timer]
-OnStartupSec=0
 OnCalendar=*-*-* *:*:00
+OnStartupSec=0
 Persistent=true
 Unit=night-shift.service
 

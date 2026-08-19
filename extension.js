@@ -19,14 +19,12 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+
 import { NightShiftIndicator } from './indicator.js';
 
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
-const configDir = GLib.get_user_config_dir(); // $HOME/.config
-const homeDir = GLib.get_home_dir(); // /$HOME
 
 const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
-const cacheDir = GLib.get_user_cache_dir(); // $HOME/.cache
 const systemdUserDir = GLib.build_filenamev([localDir, 'systemd', 'user']);
 
 const units = [
@@ -60,7 +58,6 @@ export default class NightShiftExtension extends Extension {
 
       this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
         let newValue = settings.get_string(key)
-        console.log(`[night-shift] key: ${key}, ${newValue}`)
         this.handleShiftChange(newValue);
       });
     }
@@ -91,27 +88,28 @@ export default class NightShiftExtension extends Extension {
       !!shift && desktopSettings.set_string('color-scheme', shift)
 
     }
+
     async disableServices() {
       try {
         for(const unit of units) {
           const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
           const linkFile = Gio.File.new_for_path(pathToUnit);
-          await this.removeFile(linkFile)
+          await this._removeFile(linkFile);
         }
 
           //Stop and disable services
-          GLib.spawn_command_line_async('systemctl --user daemon-reload')
+          GLib.spawn_command_line_async('systemctl --user daemon-reload');
 
-          GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer')
+          GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer');
 
-          GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer')
+          GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer');
 
         } catch (e) {
-          console.error(`Error: [night-shift] disableServices ${e}`)
+          console.error(`Error: [night-shift] disableServices ${e}`);
         }
       }
 
-    async removeFile(file) {
+    async _removeFile(file) {
       if(file.query_exists(null)) {
         await file.delete_async(GLib.PRIORITY_DEFAULT, null)
         const basename = file.get_basename();
@@ -120,14 +118,8 @@ export default class NightShiftExtension extends Extension {
 
 
     async _createAndStartServices() {
-        const extensionDir = `${localDir}/gnome-shell/extensions/night-shift@christophermca.github.io`
-        const appCacheDir = `${cacheDir}/night-shift/`
 
-
-        GLib.mkdir_with_parents(extensionDir, 0o700);
-        GLib.mkdir_with_parents(appCacheDir, 0o700);
         GLib.mkdir_with_parents(systemdUserDir, 0o700);
-
 
         //Systemd units
         try {
@@ -135,17 +127,16 @@ export default class NightShiftExtension extends Extension {
             for(const unit of units) {
               const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
               const linkFile = Gio.File.new_for_path(pathToUnit);
-              const target = `${extensionDir}/units/${unit}`;
+              const target = `${this.path}/units/${unit}`;
               const fileName = linkFile.get_basename();
 
-              await this.removeFile(linkFile);
+              await this._removeFile(linkFile);
               await linkFile.make_symbolic_link_async(
                 target,
                 GLib.PRIORITY_DEFAULT,
                 null, // Cancellable
                 (source, result) => {
                   const success = linkFile.make_symbolic_link_finish(result)
-                  console.log(`[night-shift] SYMLINK ${fileName}`)
                 });
             }
           }
