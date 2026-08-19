@@ -16,6 +16,7 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -86,7 +87,6 @@ export default class NightShiftExtension extends Extension {
       }
 
       !!shift && desktopSettings.set_string('color-scheme', shift)
-
     }
 
     async disableServices() {
@@ -99,15 +99,13 @@ export default class NightShiftExtension extends Extension {
 
           //Stop and disable services
           GLib.spawn_command_line_async('systemctl --user daemon-reload');
-
           GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer');
-
           GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer');
 
-        } catch (e) {
-          console.error(`Error: [night-shift] disableServices ${e}`);
-        }
+      } catch (e) {
+        console.error(`Error: [night-shift] disableServices ${e}`);
       }
+    }
 
     async _removeFile(file) {
       if(file.query_exists(null)) {
@@ -116,39 +114,33 @@ export default class NightShiftExtension extends Extension {
         };
     }
 
-
     async _createAndStartServices() {
+      GLib.mkdir_with_parents(systemdUserDir, 0o700);
 
-        GLib.mkdir_with_parents(systemdUserDir, 0o700);
+      //Systemd units
+      try {
+        async function createSymbolicLink() {
+          for(const unit of units) {
+            const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
+            const linkFile = Gio.File.new_for_path(pathToUnit);
+            const target = `${this.path}/units/${unit}`;
+            const fileName = linkFile.get_basename();
 
-        //Systemd units
-        try {
-          async function createSymbolicLink() {
-            for(const unit of units) {
-              const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
-              const linkFile = Gio.File.new_for_path(pathToUnit);
-              const target = `${this.path}/units/${unit}`;
-              const fileName = linkFile.get_basename();
-
-              await this._removeFile(linkFile);
-              await linkFile.make_symbolic_link_async(
-                target,
-                GLib.PRIORITY_DEFAULT,
-                null, // Cancellable
-                (source, result) => {
-                  const success = linkFile.make_symbolic_link_finish(result)
-                });
+            // await this._removeFile(linkFile);
+            await linkFile.make_symbolic_link_async(
+              target,
+              GLib.PRIORITY_DEFAULT,
+              null, // Cancellable
+              (source, result) => {
+                const success = linkFile.make_symbolic_link_finish(result)
+              });
             }
           }
 
         await createSymbolicLink.call(this).then(() => {
-
           GLib.spawn_command_line_async('systemctl --user daemon-reload')
-
           GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
-
           GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
-
         });
 
       } catch (e) {
