@@ -27,9 +27,15 @@ export const NightShiftIndicator = GObject.registerClass(
 
       this._settings.bind('show-indicator', this, 'visible', Gio.SettingsBindFlags.DEFAULT);
       this._settings.bind('tzid', this.header.label, 'text', Gio.SettingsBindFlags.GET);
+      this._settings.bind('times', this.sunrise.label, 'text', Gio.SettingsBindFlags.GET);
 
-      // this.sunrise.label.text = `${sunrise}`;
-      // this.sunset.label.text  = `${sunset}`;
+      this._updateTimesId = this._settings.connect('changed::times', (set, key) => {
+        let updatedTimes = set.get_string(key)
+        const [sunrise, sunset] = updatedTimes.split(',')
+        this.sunrise.label.text = `${sunrise}`;
+        this.sunset.label.text  = `${sunset}`;
+        log(`night-shift ${newvalue}`);
+      });
 
       this.menu.addMenuItem(this._dataItem);
       this.menu.addMenuItem(this._dataItem2);

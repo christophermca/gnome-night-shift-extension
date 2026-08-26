@@ -1,5 +1,4 @@
 #!/bin/python
-
 import argparse
 import json
 import os
@@ -33,7 +32,7 @@ schema_source = Gio.SettingsSchemaSource.new_from_directory(
 )
 
 
-def _get_location(override=False):
+def _get_location(override):
     try:
         # Get location data from Geoclue
         agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
@@ -41,6 +40,7 @@ def _get_location(override=False):
             [
                 "/usr/lib/geoclue-2.0/demos/where-am-i",
                 "--accuracy-level=8",
+                "--time-threshold=3",
                 # "--timeout=9",
             ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
             text=True,
@@ -54,6 +54,7 @@ def _get_location(override=False):
 
         # READS response for LAT and LNG
 
+        print(f"findme: {geoclue_data.stdout}")
         for line in iter(geoclue_data.stdout.readline, ""):
             match = re.match(regex, line)
 
@@ -79,6 +80,7 @@ def _get_location(override=False):
         if override:
             print(f"Override: {override}")
 
+        print(f"coords: {coords_string}")
         if override or (coords_string != previous_coordinates):
             settings.set_string("last-known-coordinates", coords_string)
             return coords
@@ -124,7 +126,9 @@ def _get_sunrise_sunset(lat, lng):
         settings.set_string(
             "timestamp", f"{datetime.now().astimezone().isoformat()}"
         )
-        print(data)
+        print(
+            f"night-shift {data.get('sunrise'), data.get('sunset'), data.get('tzid')}"
+        )
         settings.set_string("tzid", tzid)
         settings.set_string("times", time_string)
 
@@ -143,17 +147,42 @@ def _settings():
     return settings
 
 
-def main(override=False):
-    coords = _get_location(override)
+def getStaticLocation():
+    settings = _settings()
 
-    if coords:
-        _get_sunrise_sunset(*coords)
+    lat = settings.get_string("static-latitude")
+    lng = settings.get_string("static-longitude")
+    if lat and lng:
+        static_location = [lat, lng]
+        lat_lng = ",".join(static_location)
+        print(f"[night-shift] lat_lng: {lat_lng}")
+        return static_location
+
+    else:
+        pass
 
 
-if __name__ == "__main__":
+def main():
+    # Parse commendline arguments
     parser = argparse.ArgumentParser(
         description="Get the times for the sunrise/sunset"
     )
     parser.add_argument("-f", action="store_true")
     args = parser.parse_args()
-    main(args.f)
+    override = args.f
+
+    # GET data from GObject
+    settings = _settings()
+    useGeoclue = settings.get_boolean("use-geoclue")
+
+    # Run
+    coords = _get_location(override) if useGeoclue else getStaticLocation()
+    if coords:
+        print(*coords)
+        _get_sunrise_sunset(*coords)
+    else:
+        print("coords not defined")
+
+
+if __name__ == "__main__":
+    main()
