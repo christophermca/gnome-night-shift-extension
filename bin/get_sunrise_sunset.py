@@ -32,62 +32,68 @@ schema_source = Gio.SettingsSchemaSource.new_from_directory(
 )
 
 
-def _get_location(override):
-    try:
-        # Get location data from Geoclue
-        agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
-        geoclue_data = subprocess.Popen(
-            [
-                "/usr/lib/geoclue-2.0/demos/where-am-i",
-                "--accuracy-level=8",
-                "--time-threshold=3",
-                # "--timeout=9",
-            ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
-            text=True,
-            stdout=subprocess.PIPE,
+def save(coords, override=False):
+    settings = _settings()
+    coords_string = ",".join(coords)
+    previous_coordinates = settings.get_string("last-known-coordinates")
+
+    if override:
+        print(f"Override: {override}")
+
+    if override or (coords_string != previous_coordinates):
+        settings.set_string("last-known-coordinates", coords_string)
+        return coords
+    else:
+        print(
+            f"Locations are the same (old/new) '{previous_coordinates}'/'{coords_string}'"
         )
 
-        regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
-        timestamp = r"^(Timestamp:).*([\.\-\d+]+)"
 
-        coords = []
-
-        # READS response for LAT and LNG
-
-        print(f"findme: {geoclue_data.stdout}")
-        for line in iter(geoclue_data.stdout.readline, ""):
-            match = re.match(regex, line)
-
-            if match:
-                print(f"[night-shift] {match.group()}")
-                coords.append(match.group().split()[1])
-
-            if len(coords) == 2:
-                geoclue_data.terminate()
-                break
-
-        if not coords:
-            raise TypeError(
-                "Could not determine location. Please check your geoclue configuration"
-            )
-
+def _get_location(override):
+    try:
         settings = _settings()
-
-        # did location update?
-        previous_coordinates = settings.get_string("last-known-coordinates")
-        coords_string = ",".join(coords)
-
-        if override:
-            print(f"Override: {override}")
-
-        print(f"coords: {coords_string}")
-        if override or (coords_string != previous_coordinates):
-            settings.set_string("last-known-coordinates", coords_string)
-            return coords
+        useGeoclue = settings.get_boolean("use-geoclue")
+        if not useGeoclue:
+            coords = get_static_location()
         else:
-            print(
-                f"Locations are the same (old/new) '{previous_coordinates}'/'{coords_string}'"
+            # Get location data from Geoclue
+            agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
+            geoclue_data = subprocess.Popen(
+                [
+                    "/usr/lib/geoclue-2.0/demos/where-am-i",
+                    "--accuracy-level=8",
+                    "--time-threshold=3",
+                    # "--timeout=9",
+                ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
+                text=True,
+                stdout=subprocess.PIPE,
             )
+
+            regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
+            timestamp = r"^(Timestamp:).*([\.\-\d+]+)"
+
+            coords = []
+
+            # READS response for LAT and LNG
+
+            for line in iter(geoclue_data.stdout.readline, ""):
+                match = re.match(regex, line)
+
+                if match:
+                    coords.append(match.group().split()[1])
+
+                if len(coords) == 2:
+                    geoclue_data.terminate()
+                    break
+
+            if not coords:
+                raise TypeError(
+                    "Could not determine location. Please check your geoclue configuration"
+                )
+
+            # did location update?
+            # save(coords, override)
+        return coords
 
     except subprocess.TimeoutExpired as e:
         print(f"TimeoutExpired: {e.timeout} seconds\n\n {e.stdout}")
@@ -98,9 +104,13 @@ def _get_location(override):
         return None
 
     finally:
-        print("Terminating geoclue agent")
-        agent.terminate()  # Gracefully exits
-        agent.wait()  # Prevents zombie processes
+        try:
+            if agent.poll():
+                print("Terminating geoclue agent")
+                agent.terminate()  # Gracefully exits
+                agent.wait()  # Prevents zombie processes
+        except NameError:
+            pass
 
 
 def _get_sunrise_sunset(lat, lng):
@@ -113,6 +123,7 @@ def _get_sunrise_sunset(lat, lng):
 
         data = response.json()
 
+        print(f"night-shift data: {data}")
         tzid = data["tzid"]
         sunrise = datetime.fromisoformat(data["sunrise"]).strftime("%H:%M")
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
@@ -147,19 +158,20 @@ def _settings():
     return settings
 
 
-def getStaticLocation():
+def get_static_location():
     settings = _settings()
 
     lat = settings.get_string("static-latitude")
     lng = settings.get_string("static-longitude")
+    static_location = [lat, lng]
+    coords_string = ",".join(static_location)
+
     if lat and lng:
-        static_location = [lat, lng]
-        lat_lng = ",".join(static_location)
-        print(f"[night-shift] lat_lng: {lat_lng}")
-        return static_location
+        settings.set_string("last-known-coordinates", coords_string)
+        return [lat, lng]
 
     else:
-        pass
+        print("Missing required keys")
 
 
 def main():
@@ -176,12 +188,10 @@ def main():
     useGeoclue = settings.get_boolean("use-geoclue")
 
     # Run
-    coords = _get_location(override) if useGeoclue else getStaticLocation()
+    coords = _get_location(override)
+    print(f"find-me {coords}")
     if coords:
-        print(*coords)
         _get_sunrise_sunset(*coords)
-    else:
-        print("coords not defined")
 
 
 if __name__ == "__main__":
