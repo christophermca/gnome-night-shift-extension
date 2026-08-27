@@ -8,23 +8,18 @@
       <description>Use Geoclue to determine location</description>
       <default>true</default>
     </key>
-    <key name="times" type="s">
-      <default>"sunrise,sunset"</default>
+    <key name="times" type="(ss)">
+      <default>("sunrise","sunset")</default>
       <summary>Exactaly two times represented as strings</summary>
     </key>
     <key name="day-or-night" type="s">
       <summary>day or night</summary>
       <default>"day"</default>
     </key>
-    <key name="determined-coordinates" type="s">
-      <summary>determine coorinates at runtime</summary>
-      <description>Determined coordinates of user from current run</description>
-      <default>""</default>
-    </key>
-    <key name="last-known-coordinates" type="s">
-      <summary>Last known coordinates</summary>
+    <key name="last-known-coordinates" type="(dd)">
+      <summary>(Lat, Lng)</summary>
       <description>Last coordinates saved in cache</description>
-      <default>""</default>
+      <default>(0.0, 0.0)</default>
     </key>
     <key name="static-longitude" type="s">
       <summary>User-defined longitude</summary>

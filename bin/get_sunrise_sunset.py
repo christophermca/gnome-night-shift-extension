@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime, timezone, date
 
 gi.require_version("Gio", "2.0")
-from gi.repository import Gio
+from gi.repository import Gio, GLib
 
 NOAA = "https://api.sunrise-sunset.org/v2"
 SCHEMA_ID = "org.gnome.shell.extensions.night-shift"
@@ -34,14 +34,15 @@ schema_source = Gio.SettingsSchemaSource.new_from_directory(
 
 def save(coords, override=False):
     settings = _settings()
-    coords_string = ",".join(coords)
-    previous_coordinates = settings.get_string("last-known-coordinates")
+    previous_coordinates = settings.get_value("last-known-coordinates")
+    print(coords, previous_coordinates)
 
     if override:
         print(f"Override: {override}")
 
     if override or (coords_string != previous_coordinates):
-        settings.set_string("last-known-coordinates", coords_string)
+        last_known_coordinates = GLib.Variant("(dd)", coords)
+        settings.set_value("last-known-coordinates", last_known_coordinates)
         return coords
     else:
         print(
@@ -123,16 +124,14 @@ def _get_sunrise_sunset(lat, lng):
 
         data = response.json()
 
-        print(f"night-shift data: {data}")
+        # print(f"night-shift data: {data}")
         tzid = data["tzid"]
         sunrise = datetime.fromisoformat(data["sunrise"]).strftime("%H:%M")
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
 
-        times = [sunrise, sunset]
-        time_string = ",".join(times)
+        times = (sunrise, sunset)
 
         # update settings
-
         settings = _settings()
         settings.set_string(
             "timestamp", f"{datetime.now().astimezone().isoformat()}"
@@ -141,7 +140,10 @@ def _get_sunrise_sunset(lat, lng):
             f"night-shift {data.get('sunrise'), data.get('sunset'), data.get('tzid')}"
         )
         settings.set_string("tzid", tzid)
-        settings.set_string("times", time_string)
+        print(f"{times}")
+        times_tuple = GLib.Variant("(ss)", times)
+
+        settings.set_value("times", times_tuple)
 
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred (e.g., 404, 500): {http_err}")
@@ -163,11 +165,11 @@ def get_static_location():
 
     lat = settings.get_string("static-latitude")
     lng = settings.get_string("static-longitude")
-    static_location = [lat, lng]
-    coords_string = ",".join(static_location)
+    static_location = (float(lat), float(lng))
 
     if lat and lng:
-        settings.set_string("last-known-coordinates", coords_string)
+        last_known_coordinates = GLib.Variant("(dd)", static_location)
+        settings.set_value("last-known-coordinates", last_known_coordinates)
         return [lat, lng]
 
     else:

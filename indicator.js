@@ -18,32 +18,40 @@ export const NightShiftIndicator = GObject.registerClass(
 
       this.add_child(icon);
 
-      this._dataItem  = new PopupMenu.PopupMenuItem('Timezone', {reactive: false, can_focus: false, activate: false  });
+      this._headerRow  = new PopupMenu.PopupMenuItem('Timezone', {reactive: false, can_focus: false, activate: false  });
       this._dataItem2 = new PopupMenu.PopupImageMenuItem('Loading data...', 'daytime-sunrise-symbolic',{reactive: false, can_focus: false, activate: false  });
       this._dataItem3 = new PopupMenu.PopupImageMenuItem('Loading data...', 'daytime-sunset-symbolic',{reactive: false, can_focus: false, activate: false  });
 
-      const tzid = this._settings.get_string('tzid')
-      const [sunrise, sunset] = this._settings.get_string('times')?.split(',')
 
-      this._settings.bind('show-indicator', this, 'visible', Gio.SettingsBindFlags.DEFAULT);
-      this._settings.bind('tzid', this.header.label, 'text', Gio.SettingsBindFlags.GET);
-      this._settings.bind('times', this.sunrise.label, 'text', Gio.SettingsBindFlags.GET);
-
-      this._updateTimesId = this._settings.connect('changed::times', (set, key) => {
-        let updatedTimes = set.get_string(key)
-        const [sunrise, sunset] = updatedTimes.split(',')
-        this.sunrise.label.text = `${sunrise}`;
-        this.sunset.label.text  = `${sunset}`;
-        log(`night-shift ${newvalue}`);
-      });
-
-      this.menu.addMenuItem(this._dataItem);
+      this.menu.addMenuItem(this._headerRow);
       this.menu.addMenuItem(this._dataItem2);
       this.menu.addMenuItem(this._dataItem3);
+
+      this.initialize();
+    }
+
+    initialize() {
+      this._settings.bind('show-indicator', this, 'visible', Gio.SettingsBindFlags.DEFAULT);
+      this._settings.bind('tzid', this.header.label, 'text', Gio.SettingsBindFlags.GET);
+
+      const timesData = this._settings.get_value('times');
+      const [sunrise, sunset] = timesData.recursiveUnpack();
+
+      this.sunrise.label.text = sunrise
+      this.sunset.label.text  = sunset
+
+      // Dynamically update
+      this._updateTimesId = this._settings.connect('changed::times', (set, key) => {
+        let timesTuple = set.get_value(key)
+        let [updatedTimeSunrise, updatedTimeSunset] = timesTuple.recursiveUnpack();
+        console.log(`[night-shift] _updateTimesId = ${updatedTimeSunrise}, ${updatedTimeSunset}`);
+        this.sunrise.label.text = `${updatedTimeSunrise}`;
+        this.sunset.label.text  = `${updatedTimeSunset}`;
+      });
     }
 
     get header() {
-      return this._dataItem
+      return this._headerRow
     }
 
     get sunrise() {

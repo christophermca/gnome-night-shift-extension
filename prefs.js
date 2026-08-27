@@ -60,7 +60,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     page.add(group);
     page.add(locationSettings);
 
-
     // Create a settings object and bind the row to the `show-indicator` key
     window._settings = this.getSettings();
     window._settings.bind('show-indicator', showIndicator, 'active',
@@ -79,7 +78,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       const switchRowIsDisabled = !row.get_active();
       locationSettingsSubgroup.set_sensitive(switchRowIsDisabled);
     });
-
 
     latitude.connect('changed', (row) => {
       log(`[night-shift] inside static latitude connect ${row.get_text()}`)

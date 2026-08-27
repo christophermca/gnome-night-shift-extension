@@ -47,6 +47,7 @@ export default class NightShiftExtension extends Extension {
   enable() {
     this._createAndStartServices()
     this._handleIndicator()
+    this._connectToShiftChange()
   }
 
   disable() {
@@ -60,9 +61,9 @@ export default class NightShiftExtension extends Extension {
       this._updateTimesId = null
     }
 
-    if(this._specifiedId) {
-      this._settings.disconnect(this._specifiedId);
-      this._specifiedId = null
+    if(this._shiftChangeId) {
+      this._settings.disconnect(this._shiftChangeId);
+      this._shiftChangeId = null
     }
 
     this._settings = null;
@@ -142,10 +143,18 @@ export default class NightShiftExtension extends Extension {
     }
   }
 
+  _connectToShiftChange(){
+    this._shiftChangeId = this._settings.connect('changed::day-or-night', (settings, key) => {
+      let newValue = settings.get_string(key)
+      this.handleShiftChange(newValue);
+    });
+  }
+
   _handleIndicator() {
+    log("[night-shift] inside handleIndicator")
     try {
-      this._settings = this.getSettings()
-      this._indicator = new NightShiftIndicator(this._settings)
+      this._indicator = new NightShiftIndicator(this.getSettings())
+      log(`[night-shift] indicator`)
 
 
       // Place indicator
@@ -153,21 +162,10 @@ export default class NightShiftExtension extends Extension {
 
       this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
 
-      this._specifiedId = this._settings.connect('changed::day-or-night', (settings, key) => {
-        let newValue = settings.get_string(key)
-        this.handleShiftChange(newValue);
-      });
 
-      this._updateTimesId = this._settings.connect('changed::times', (settings, key) => {
-        log('help me [night-shift]')
-        // const newValue = settings.get_string(key)
-        // const [sunrise, sunset] = newValue.split(',')
-        // this._indicator.sunrise.label.text = sunrise
-        // this._indicator.sunset.label.text = sunset
-      });
 
     } catch (e) {
-      console.error(` Error in _handleIndicator: ${e}` )
+      console.error(`[night-shift] Error in _handleIndicator: ${e}` )
     }
   }
 }
