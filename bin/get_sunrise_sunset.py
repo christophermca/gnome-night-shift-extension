@@ -34,7 +34,6 @@ schema_source = Gio.SettingsSchemaSource.new_from_directory(
 def save(coords, override=False):
     settings = _settings()
     previous_coordinates = settings.get_value("last-known-coordinates")
-    print(coords, previous_coordinates)
 
     if override:
         print(f"Override: {override}")
@@ -63,7 +62,6 @@ def _get_location(override):
                     "/usr/lib/geoclue-2.0/demos/where-am-i",
                     "--accuracy-level=8",
                     "--time-threshold=3",
-                    # "--timeout=9",
                 ],  # `run /usr/lib/geoclue-2.0/demo/where-am-i -h` for more information about options
                 text=True,
                 stdout=subprocess.PIPE,
@@ -92,7 +90,7 @@ def _get_location(override):
                 )
 
             # did location update?
-            # save(coords, override)
+            save(coords, override)
         return coords
 
     except subprocess.TimeoutExpired as e:
@@ -123,7 +121,6 @@ def _get_sunrise_sunset(lat, lng):
 
         data = response.json()
 
-        # print(f"night-shift data: {data}")
         tzid = data["tzid"]
         sunrise = datetime.fromisoformat(data["sunrise"]).strftime("%H:%M")
         sunset = datetime.fromisoformat(data["sunset"]).strftime("%H:%M")
@@ -139,7 +136,6 @@ def _get_sunrise_sunset(lat, lng):
             f"night-shift {data.get('sunrise'), data.get('sunset'), data.get('tzid')}"
         )
         settings.set_string("tzid", tzid)
-        print(f"{times}")
         times_tuple = GLib.Variant("(ss)", times)
 
         settings.set_value("times", times_tuple)
@@ -190,7 +186,6 @@ def main():
 
     # Run
     coords = _get_location(override)
-    print(f"find-me {coords}")
     if coords:
         _get_sunrise_sunset(*coords)
 

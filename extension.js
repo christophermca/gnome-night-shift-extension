@@ -39,9 +39,6 @@ Gio._promisify(
   "make_symbolic_link_async",
   "make_symbolic_link_finish",
   "delete_async",
-  "delete_finish",
-  "openExtensionPreferences_async",
-  "openExtensionPreferences_finish",
 );
 
 export default class NightShiftExtension extends Extension {
