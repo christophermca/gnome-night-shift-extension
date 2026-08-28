@@ -16,54 +16,56 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import GLib from 'gi://GLib';
-import Gio from 'gi://Gio';
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import GLib from "gi://GLib";
+import Gio from "gi://Gio";
+import * as Main from "resource:///org/gnome/shell/ui/main.js";
+import { Extension } from "resource:///org/gnome/shell/extensions/extension.js";
 
-import { NightShiftIndicator } from './indicator.js';
+import { NightShiftIndicator } from "./indicator.js";
 
 const localDir = GLib.get_user_data_dir(); // $HOME/.local/share
-const systemdUserDir = GLib.build_filenamev([localDir, 'systemd', 'user']);
+const systemdUserDir = GLib.build_filenamev([localDir, "systemd", "user"]);
 
 const units = [
-  'get-sunrise-sunset.timer',
-  'get-sunrise-sunset.service',
-  'night-shift.timer',
-  'night-shift.service',
-]
+  "get-sunrise-sunset.timer",
+  "get-sunrise-sunset.service",
+  "night-shift.timer",
+  "night-shift.service",
+];
 
 // Gio required to be wrapped in promisify for async/await to work https://gjs.guide/guides/gio/file-operations.html
 Gio._promisify(
   Gio.File.prototype,
-  'make_symbolic_link_async',
-  'make_symbolic_link_finish',
-  'delete_async',
-  'delete_finish'
+  "make_symbolic_link_async",
+  "make_symbolic_link_finish",
+  "delete_async",
+  "delete_finish",
+  "openExtensionPreferences_async",
+  "openExtensionPreferences_finish",
 );
 
 export default class NightShiftExtension extends Extension {
-
   enable() {
-    this._createAndStartServices()
-    this._handleIndicator()
-    this._connectToShiftChange()
+    this._settings = this.getSettings();
+    this._createAndStartServices();
+    this._handleIndicator();
+    this._connectToShiftChange();
   }
 
   disable() {
-    this._disableServices()
+    this._disableServices();
 
     this._indicator?.destroy();
     this._indicator = null;
 
-    if(this._updateTimesId) {
+    if (this._updateTimesId) {
       this._settings.disconnect(this._updateTimesId);
-      this._updateTimesId = null
+      this._updateTimesId = null;
     }
 
-    if(this._shiftChangeId) {
+    if (this._shiftChangeId) {
       this._settings.disconnect(this._shiftChangeId);
-      this._shiftChangeId = null
+      this._shiftChangeId = null;
     }
 
     this._settings = null;
@@ -71,42 +73,49 @@ export default class NightShiftExtension extends Extension {
 
   handleShiftChange(dayNight) {
     let shift;
-    const desktopSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.interface'})
-    const current = desktopSettings.get_string('color-scheme')
+    const desktopSettings = new Gio.Settings({
+      schema_id: "org.gnome.desktop.interface",
+    });
+    const current = desktopSettings.get_string("color-scheme");
 
-    if (dayNight == 'day') {
-      shift = 'default'
-    } else if (dayNight == 'night') {
-      shift = 'prefer-dark'
+    if (dayNight == "day") {
+      shift = "default";
+    } else if (dayNight == "night") {
+      shift = "prefer-dark";
     }
 
-    log(`shift: ${!!shift} currentVshift: ${current != shift}`)
-    !!shift && current != shift && desktopSettings.set_string('color-scheme', shift)
+    log(`shift: ${!!shift} currentVshift: ${current != shift}`);
+    !!shift &&
+      current != shift &&
+      desktopSettings.set_string("color-scheme", shift);
   }
 
   async _disableServices() {
     try {
-      for(const unit of units) {
+      for (const unit of units) {
         const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
         const linkFile = Gio.File.new_for_path(pathToUnit);
         await this._removeFile(linkFile);
       }
 
       //Stop and disable services
-      GLib.spawn_command_line_async('systemctl --user daemon-reload');
-      GLib.spawn_command_line_async('systemctl --user disable --now get-sunrise-sunset.timer');
-      GLib.spawn_command_line_async('systemctl --user disable--now night-shift.timer');
-
+      GLib.spawn_command_line_async("systemctl --user daemon-reload");
+      GLib.spawn_command_line_async(
+        "systemctl --user disable --now get-sunrise-sunset.timer",
+      );
+      GLib.spawn_command_line_async(
+        "systemctl --user disable--now night-shift.timer",
+      );
     } catch (e) {
       console.error(`Error: [night-shift] _disableServices ${e}`);
     }
   }
 
   async _removeFile(file) {
-    if(file.query_exists(null)) {
-      await file.delete_async(GLib.PRIORITY_DEFAULT, null)
+    if (file.query_exists(null)) {
+      await file.delete_async(GLib.PRIORITY_DEFAULT, null);
       const basename = file.get_basename();
-    };
+    }
   }
 
   async _createAndStartServices() {
@@ -115,7 +124,7 @@ export default class NightShiftExtension extends Extension {
     //Systemd units
     try {
       async function createSymbolicLink() {
-        for(const unit of units) {
+        for (const unit of units) {
           const pathToUnit = GLib.build_filenamev([systemdUserDir, unit]);
           const linkFile = Gio.File.new_for_path(pathToUnit);
           const target = `${this.path}/units/${unit}`;
@@ -127,45 +136,47 @@ export default class NightShiftExtension extends Extension {
             GLib.PRIORITY_DEFAULT,
             null, // Cancellable
             (source, result) => {
-              const success = linkFile.make_symbolic_link_finish(result)
-            });
+              const success = linkFile.make_symbolic_link_finish(result);
+            },
+          );
         }
       }
 
       await createSymbolicLink.call(this).then(() => {
-        GLib.spawn_command_line_async('systemctl --user daemon-reload')
-        GLib.spawn_command_line_async('systemctl --user enable --now get-sunrise-sunset.timer')
-        GLib.spawn_command_line_async('systemctl --user enable --now night-shift.timer')
+        GLib.spawn_command_line_async("systemctl --user daemon-reload");
+        GLib.spawn_command_line_async(
+          "systemctl --user enable --now get-sunrise-sunset.timer",
+        );
+        GLib.spawn_command_line_async(
+          "systemctl --user enable --now night-shift.timer",
+        );
       });
-
     } catch (e) {
       console.error(`[night-shift] Failed to create and start services ${e}`);
     }
   }
 
-  _connectToShiftChange(){
-    this._shiftChangeId = this._settings.connect('changed::day-or-night', (settings, key) => {
-      let newValue = settings.get_string(key)
-      this.handleShiftChange(newValue);
-    });
+  _connectToShiftChange() {
+    this._shiftChangeId = this._settings.connect(
+      "changed::day-or-night",
+      (settings, key) => {
+        let newValue = settings.get_string(key);
+        this.handleShiftChange(newValue);
+      },
+    );
   }
 
   _handleIndicator() {
-    log("[night-shift] inside handleIndicator")
     try {
-      this._indicator = new NightShiftIndicator(this.getSettings())
-      log(`[night-shift] indicator`)
-
+      this._indicator = new NightShiftIndicator(this._settings);
 
       // Place indicator
-      Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
-
-      this._indicator.menu.addAction(_("Preferences"), () => this.openPreferences());
-
-
-
+      Main.panel.addToStatusArea(this.uuid, this._indicator, 0, "right");
+      this._indicator.menu.addAction(_("Preferences"), () =>
+        this.openPreferences(),
+      );
     } catch (e) {
-      console.error(`[night-shift] Error in _handleIndicator: ${e}` )
+      console.error(`[night-shift] Error in _handleIndicator: ${e}`);
     }
   }
 }

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 is_day_or_night() {
 
   GSETTINGS_SCHEMA_DIR="/home/${USER}/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/schemas/"
@@ -8,7 +7,6 @@ is_day_or_night() {
 
   useGeoclue=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID 'use-geoclue');
 
-  if (useGeoclue); then
     # GET times
     times=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID times);
 
@@ -26,7 +24,6 @@ is_day_or_night() {
 
     # set day-or-night
     $(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings set $SCHEMA_ID "day-or-night" $DAY_NIGHT)
-  fi
 
 }
 

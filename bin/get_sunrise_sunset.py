@@ -1,6 +1,5 @@
 #!/bin/python
 import argparse
-import json
 import os
 import requests
 import re
@@ -8,7 +7,7 @@ import gi
 import subprocess
 
 from pathlib import Path
-from datetime import datetime, timezone, date
+from datetime import datetime
 
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
