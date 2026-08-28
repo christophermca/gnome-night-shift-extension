@@ -12,7 +12,6 @@ const staticLocationRegex = /^-?\d{1,3}\.\d+$/;
 
 export default class NightShiftPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window) {
-    // Create a preferences page, with a single group
     const page = new Adw.PreferencesPage({
       title: gettext("General"),
       icon_name: "dialog-information-symbolic",
@@ -42,7 +41,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       subtitle: gettext("Whether to show the panel indicator"),
     });
 
-    // Create a new preferences row
     const useGeoclue = new Adw.SwitchRow({
       title: gettext("Automatically determine User's Location (geoclue2)"),
       subtitle: gettext(
@@ -77,7 +75,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       );
     });
 
-    // Create a settings object and bind the row to the `show-indicator` key
     window._settings = this.getSettings();
     window._settings.bind(
       "show-indicator",
@@ -117,9 +114,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       const coord = row.get_text();
       const isValid = staticLocationRegex.test(coord);
       if (isValid) {
-        // if error is present
         clearError(latitude);
-        // save string
         window._settings.set_string("static-latitude", coord);
       } else {
         displayError(latitude);
@@ -131,9 +126,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       const coord = row.get_text();
       const isValid = staticLocationRegex.test(coord);
       if (isValid) {
-        // if error is present
         clearError(longitude);
-        // save string
         window._settings.set_string("static-longitude", coord);
       } else {
         displayError(longitude);

@@ -81,7 +81,6 @@ export default class NightShiftExtension extends Extension {
       shift = "prefer-dark";
     }
 
-    log(`shift: ${!!shift} currentVshift: ${current != shift}`);
     !!shift &&
       current != shift &&
       desktopSettings.set_string("color-scheme", shift);

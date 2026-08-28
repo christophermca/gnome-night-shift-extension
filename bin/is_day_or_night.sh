@@ -7,23 +7,23 @@ is_day_or_night() {
 
   useGeoclue=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID 'use-geoclue');
 
-    # GET times
-    times=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID times);
+  # GET times
+  times=$(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings get $SCHEMA_ID times);
 
-    IFS="," read -r sunrise sunset <<< "$times"
-    current_time=`date '+%H:%M'` # 24hr format
+  IFS="," read -r sunrise sunset <<< "$times"
+  current_time=`date '+%H:%M'` # 24hr format
 
-    # Calculate day-or-night
-    if [[ "$current_time" > "$sunrise" ]]; then
-      DAY_NIGHT='day'
-    fi
+  # Calculate day-or-night
+  if [[ "$current_time" > "$sunrise" ]]; then
+    DAY_NIGHT='day'
+  fi
 
-    if [[ "$current_time" > "$sunset" ]]; then
-      DAY_NIGHT='night'
-    fi
+  if [[ "$current_time" > "$sunset" ]]; then
+    DAY_NIGHT='night'
+  fi
 
-    # set day-or-night
-    $(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings set $SCHEMA_ID "day-or-night" $DAY_NIGHT)
+  # set day-or-night
+  $(export GSETTINGS_SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR; gsettings set $SCHEMA_ID "day-or-night" $DAY_NIGHT)
 
 }
 
