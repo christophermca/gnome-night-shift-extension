@@ -1,1 +1,3 @@
 schemas/*.compiled
+bin/__pycache__/*
+

@@ -58,8 +58,10 @@ export const NightShiftIndicator = GObject.registerClass(
       const timesData = this._settings.get_value("times");
       const [sunrise, sunset] = timesData.recursiveUnpack();
 
-      this.sunrise.label.text = sunrise;
-      this.sunset.label.text = sunset;
+      if (this.sunrise && this.sunset) {
+        this.sunrise.label.text = sunrise;
+        this.sunset.label.text = sunset;
+      }
 
       // Dynamically update
       this._updateTimesId = this._settings.connect(
@@ -71,8 +73,11 @@ export const NightShiftIndicator = GObject.registerClass(
           console.log(
             `[night-shift] _updateTimesId = ${updatedTimeSunrise}, ${updatedTimeSunset}`,
           );
-          this.sunrise.label.text = `${updatedTimeSunrise}`;
-          this.sunset.label.text = `${updatedTimeSunset}`;
+
+          if (this.sunrise && this.sunset) {
+            this.sunrise.label.text = `${updatedTimeSunrise}`;
+            this.sunset.label.text = `${updatedTimeSunset}`;
+          }
         },
       );
     }

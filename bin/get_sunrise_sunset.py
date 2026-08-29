@@ -1,4 +1,3 @@
-#!/bin/python
 import argparse
 import os
 import requests
@@ -31,29 +30,12 @@ schema_source = Gio.SettingsSchemaSource.new_from_directory(
 )
 
 
-def save(coords, override=False):
-    settings = _settings()
-    previous_coordinates = settings.get_value("last-known-coordinates")
-
-    if override:
-        print(f"Override: {override}")
-
-    if override or (coords_string != previous_coordinates):
-        last_known_coordinates = GLib.Variant("(dd)", coords)
-        settings.set_value("last-known-coordinates", last_known_coordinates)
-        return coords
-    else:
-        print(
-            f"Locations are the same (old/new) '{previous_coordinates}'/'{coords_string}'"
-        )
-
-
-def _get_location(override):
+def _get_location(override: bool) -> tuple(float, float):
     try:
         settings = _settings()
         useGeoclue = settings.get_boolean("use-geoclue")
         if not useGeoclue:
-            coords = get_static_location()
+            coords: tuple(float, float) = get_static_location()
         else:
             # Get location data from Geoclue
             agent = subprocess.Popen(["/usr/lib/geoclue-2.0/demos/agent"])
@@ -70,27 +52,29 @@ def _get_location(override):
             regex = r"^(Lat.*:|Long.*:).*([\.\-\d+]+)"
             timestamp = r"^(Timestamp:).*([\.\-\d+]+)"
 
-            coords = []
-
+            arr = []
             # READS response for LAT and LNG
 
             for line in iter(geoclue_data.stdout.readline, ""):
                 match = re.match(regex, line)
 
                 if match:
-                    coords.append(match.group().split()[1])
+                    matched_string = match.group().split()[1]
+                    arr.append(float(matched_string))
 
-                if len(coords) == 2:
+                if len(arr) == 2:
                     geoclue_data.terminate()
                     break
 
-            if not coords:
+            if not arr:
                 raise TypeError(
                     "Could not determine location. Please check your geoclue configuration"
                 )
+            coords = tuple(arr)
 
             # did location update?
-            save(coords, override)
+        save(coords, override)
+
         return coords
 
     except subprocess.TimeoutExpired as e:
@@ -111,7 +95,7 @@ def _get_location(override):
             pass
 
 
-def _get_sunrise_sunset(lat, lng):
+def _get_sunrise_sunset(lat: float, lng: float):
     try:
         params = {"lat": lat, "lng": lng}
 
@@ -147,7 +131,7 @@ def _get_sunrise_sunset(lat, lng):
         print("Done")
 
 
-def _settings():
+def _settings() -> object:
     # initialize gsettings obj
     schemaObj = schema_source.lookup(SCHEMA_ID, True)
     settings = Gio.Settings.new_full(schemaObj, None, None)
@@ -155,17 +139,35 @@ def _settings():
     return settings
 
 
-def get_static_location():
+def save(coords: tuple(float, float), override=False) -> None:
+    settings = _settings()
+    previous_coordinates = settings.get_value("last-known-coordinates")
+
+    if override or (coords == previous_coordinates):
+
+        last_known_coordinates = GLib.Variant("(dd)", coords)
+        settings.set_value("last-known-coordinates", last_known_coordinates)
+        return coords
+    else:
+        coords_string = ",".join(map(str, coords))
+        print(
+            f"Locations are the same (old/new) '{previous_coordinates}'/'{coords_string}'"
+        )
+
+
+def get_static_location() -> tuple(float, float):
     settings = _settings()
 
     lat = settings.get_string("static-latitude")
     lng = settings.get_string("static-longitude")
-    static_location = (float(lat), float(lng))
 
     if lat and lng:
+        static_location = (float(lat), float(lng))
+
         last_known_coordinates = GLib.Variant("(dd)", static_location)
         settings.set_value("last-known-coordinates", last_known_coordinates)
-        return [lat, lng]
+
+        return static_location
 
     else:
         print("Missing required keys")
@@ -185,7 +187,7 @@ def main():
     useGeoclue = settings.get_boolean("use-geoclue")
 
     # Run
-    coords = _get_location(override)
+    coords: tuple(float, float) = _get_location(override)
     if coords:
         _get_sunrise_sunset(*coords)
 

@@ -32,6 +32,9 @@ export default class NightShiftPreferences extends ExtensionPreferences {
 
     const locationSettingsSubgroup = new Adw.PreferencesGroup({
       title: gettext("Static Location (Manual)"),
+      description: gettext(
+        "Set location Night will use to determine sunset/sunrise. Note: this will not change the Computer Clock",
+      ),
       margin_top: 2,
     });
 
@@ -42,9 +45,9 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     });
 
     const useGeoclue = new Adw.SwitchRow({
-      title: gettext("Automatically determine User's Location (geoclue2)"),
+      title: gettext("Automatic location detection"),
       subtitle: gettext(
-        'Requires "geoclue configuration" `/etc/geoclue/geoclue.conf`',
+        "Requires location services enabled and internet access",
       ),
     });
 
@@ -110,7 +113,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     });
 
     latitude.connect("changed", (row) => {
-      log(`[night-shift] inside static latitude connect ${row.get_text()}`);
       const coord = row.get_text();
       const isValid = staticLocationRegex.test(coord);
       if (isValid) {
@@ -122,7 +124,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     });
 
     longitude.connect("changed", (row) => {
-      log(`[night-shift] inside static longitude connect ${row.get_text()}`);
       const coord = row.get_text();
       const isValid = staticLocationRegex.test(coord);
       if (isValid) {
