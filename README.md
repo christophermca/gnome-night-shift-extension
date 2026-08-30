@@ -64,10 +64,6 @@ Currently, Night Shift operates automatically with no manual configuration requi
 - **Location not detected**: Check that location services are enabled in GNOME Settings
 - **API errors**: Verify your internet connection and NOAA API availability
 
-## 📝 License
-
-GNU General Public License v3.0 - See LICENSE file for details
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
