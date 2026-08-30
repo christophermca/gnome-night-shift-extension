@@ -23,11 +23,13 @@ export const NightShiftIndicator = GObject.registerClass(
         can_focus: false,
         activate: false,
       });
+
       this._dataItem2 = new PopupMenu.PopupImageMenuItem(
         "Loading data...",
         "daytime-sunrise-symbolic",
         { reactive: false, can_focus: false, activate: false },
       );
+
       this._dataItem3 = new PopupMenu.PopupImageMenuItem(
         "Loading data...",
         "daytime-sunset-symbolic",
@@ -48,6 +50,7 @@ export const NightShiftIndicator = GObject.registerClass(
         "visible",
         Gio.SettingsBindFlags.DEFAULT,
       );
+
       this._settings.bind(
         "tzid",
         this.header.label,
@@ -70,9 +73,6 @@ export const NightShiftIndicator = GObject.registerClass(
           let timesTuple = set.get_value(key);
           let [updatedTimeSunrise, updatedTimeSunset] =
             timesTuple.recursiveUnpack();
-          console.log(
-            `[night-shift] _updateTimesId = ${updatedTimeSunrise}, ${updatedTimeSunset}`,
-          );
 
           if (this.sunrise && this.sunset) {
             this.sunrise.label.text = `${updatedTimeSunrise}`;
