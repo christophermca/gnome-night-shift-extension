@@ -18,7 +18,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     });
 
     // GROUPS
-    const group = new Adw.PreferencesGroup({
+    const general = new Adw.PreferencesGroup({
       title: gettext("Preferences"),
       description: gettext("Configure the extension"),
     });
@@ -38,7 +38,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       margin_top: 2,
     });
 
-    // TOGGLE OPTIONS
+    //ROWS
     const showIndicator = new Adw.SwitchRow({
       title: gettext("Show Indicator"),
       subtitle: gettext("Whether to show the panel indicator"),
@@ -51,25 +51,27 @@ export default class NightShiftPreferences extends ExtensionPreferences {
       ),
     });
 
-    group.add(showIndicator);
-
-    locationSettings.add(useGeoclue);
-    locationSettings.add(locationSettingsSubgroup);
-
     const latitude = new Adw.EntryRow({
       title: "Latitude",
       showApplyButton: true,
     });
+
     const longitude = new Adw.EntryRow({
       title: "Longitude",
       showApplyButton: true,
     });
+
+    general.add(showIndicator);
+
+    locationSettings.add(useGeoclue);
+    locationSettings.add(locationSettingsSubgroup);
+
     locationSettingsSubgroup.add(latitude);
     locationSettingsSubgroup.add(longitude);
 
     // Create page
     window.add(page);
-    page.add(group);
+    page.add(general);
     page.add(locationSettings);
 
     window.connect("close-request", () => {

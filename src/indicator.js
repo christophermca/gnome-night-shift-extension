@@ -93,5 +93,14 @@ export const NightShiftIndicator = GObject.registerClass(
     get sunset() {
       return this._dataItem3;
     }
+
+    destroy() {
+      if (this._updateTimesId) {
+        this._settings.disconnect(this._updateTimesId);
+        this._updateTimesId = null;
+      }
+
+      super.destroy();
+    }
   },
 );

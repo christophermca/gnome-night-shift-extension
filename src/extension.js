@@ -52,13 +52,8 @@ export default class NightShiftExtension extends Extension {
   disable() {
     this._disableServices();
 
-    this._indicator?.destroy();
+    this._indicator.destroy();
     this._indicator = null;
-
-    if (this._updateTimesId) {
-      this._settings.disconnect(this._updateTimesId);
-      this._updateTimesId = null;
-    }
 
     if (this._shiftChangeId) {
       this._settings.disconnect(this._shiftChangeId);
