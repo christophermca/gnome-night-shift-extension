@@ -1,8 +1,10 @@
-import argparse
+#!/usr/bin/python
+
 import os
-import requests
 import re
 import gi
+import argparse
+import requests
 import subprocess
 
 from pathlib import Path

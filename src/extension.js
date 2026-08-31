@@ -52,13 +52,18 @@ export default class NightShiftExtension extends Extension {
   disable() {
     this._disableServices();
 
-    this._indicator.destroy();
-    this._indicator = null;
+    if (this._useGeoclueId) {
+      this._settings.disconnect(this._useGeoclueId);
+      this._useGeoclueId = null;
+    }
 
     if (this._shiftChangeId) {
       this._settings.disconnect(this._shiftChangeId);
       this._shiftChangeId = null;
     }
+
+    this._indicator.destroy();
+    this._indicator = null;
 
     this._settings = null;
   }
@@ -159,7 +164,19 @@ export default class NightShiftExtension extends Extension {
 
   _handleIndicator() {
     try {
+      log("[night-shift]");
       this._indicator = new NightShiftIndicator(this._settings);
+
+      this._useGeoclueId = this._settings.connect(
+        "changed::use-geoclue",
+        (set, key) => {
+          let newValue = this._settings.get_string(key);
+          log(`[night-shift] use-geoclue changed to: ${newValue}`);
+          GLib.spawn_command_line_async(
+            "systemctl --user restart get-sunrise-sunset.service",
+          );
+        },
+      );
 
       // Place indicator
       Main.panel.addToStatusArea(this.uuid, this._indicator, 0, "right");

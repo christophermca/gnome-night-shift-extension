@@ -1,3 +1,5 @@
 *.zip
 venv
+**/__pytest__
+**/*.egg-info/*
 

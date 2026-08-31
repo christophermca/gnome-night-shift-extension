@@ -29,6 +29,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
         "Configure how 'Night shift' determines user's location.",
       ),
     });
+    locationSettings.add_css_class("boxed-list");
 
     const locationSettingsSubgroup = new Adw.PreferencesGroup({
       title: gettext("Static Location (Manual)"),
@@ -73,12 +74,6 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     window.add(page);
     page.add(general);
     page.add(locationSettings);
-
-    window.connect("close-request", () => {
-      GLib.spawn_command_line_async(
-        "systemctl --user restart get-sunrise-sunset.service night-shift.service",
-      );
-    });
 
     window._settings = this.getSettings();
     window._settings.bind(

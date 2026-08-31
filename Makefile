@@ -54,6 +54,11 @@ update-settings:
 run:
 	dbus-run-session -- gnome-shell --devkit --wayland
 
-.PHONY: watch
-watch:
+.PHONY: log-extension
+log-extension:
 	journalctl -f /usr/bin/gnome-shell -b 0 -g 'night-shift'
+
+.PHONY: log-preferences
+log-preferences:
+	journalctl -f -o cat /usr/bin/gjs
+

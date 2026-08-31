@@ -1,6 +1,0 @@
-pyproject.toml
-test_get_sunrise_sunset.py
-test_get_sunrise_sunset.egg-info/PKG-INFO
-test_get_sunrise_sunset.egg-info/SOURCES.txt
-test_get_sunrise_sunset.egg-info/dependency_links.txt
-test_get_sunrise_sunset.egg-info/top_level.txt
