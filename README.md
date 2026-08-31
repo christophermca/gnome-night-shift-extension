@@ -23,8 +23,10 @@ Night Shift relies on **Geoclue 2.0** and the **NOAA API** to determine whether 
 ## 📋 Requirements
 
 - GNOME Shell 40+
-- Geoclue 2.0
 - Internet connection (for NOAA API queries)
+
+### [**Optional** Dependency]
+- Geoclue 2.0
 
 ## 📦 Installation
 
@@ -46,7 +48,8 @@ Night Shift relies on **Geoclue 2.0** and the **NOAA API** to determine whether 
 
 Once installed and enabled:
 
-1. The extension automatically detects your location
+1. The extension automatically detects your location with geoclue or uses
+   provided static location.
 2. It monitors sunrise and sunset times
 3. Your desktop automatically switches to Light mode at sunrise
 4. Your desktop automatically switches to Dark mode at sunset

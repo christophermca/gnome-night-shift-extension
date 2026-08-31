@@ -8,4 +8,4 @@ Type=oneshot
 ExecStart=/home/%u/.local/share/gnome-shell/extensions/night-shift@christophermca.github.io/bin/get_sunrise_sunset.py
 
 
-Restart=on-failure
+Restart=no
