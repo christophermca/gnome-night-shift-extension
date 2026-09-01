@@ -34,7 +34,7 @@ export default class NightShiftPreferences extends ExtensionPreferences {
     const locationSettingsSubgroup = new Adw.PreferencesGroup({
       title: gettext("Static Location (Manual)"),
       description: gettext(
-        "Set location Night will use to determine sunset/sunrise. Note: this will not change the Computer Clock",
+        "Set the location 'Night shift' will use to determine sunset/sunrise. Note: This will not affect the computers clock",
       ),
       margin_top: 2,
     });
